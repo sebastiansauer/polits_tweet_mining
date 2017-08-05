@@ -1,7 +1,7 @@
 */__Archive__
 .httr-oauth
 .Rhistory
-.Proj.user
+.Rproj.user
 *cache
 *.tmp
 .DS_Store

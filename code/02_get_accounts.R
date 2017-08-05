@@ -1,0 +1,19 @@
+# # Prepare list of politicians
+
+library(tidyverse)
+
+polits <- read_csv("data/german_politicians_twitter.csv")
+
+
+polits %>%
+  mutate(is_duplicate = duplicated(.$account)) %>%
+  filter(!is_duplicate) -> polits_unique
+
+
+polits_unique %>%
+  filter(human == "y", party != "invalid") -> polits_df
+
+
+
+write_csv(polits_df, "data/german_politicians_twitter.csv")
+

@@ -1,0 +1,10 @@
+{
+    "dialog-state" : {
+        "caseSensitive" : false,
+        "filePatterns" : [
+        ],
+        "path" : "~/Documents/Forschung/Autoritarismus/polit_tweets_mining",
+        "query" : "binnen",
+        "regex" : false
+    }
+}

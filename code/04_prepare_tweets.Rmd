@@ -1,0 +1,111 @@
+---
+title: "Data Preparation"
+author: "Sebastian Sauer"
+date: "5 8 2017"
+output: html_document
+---
+
+
+
+
+```{r setup, include=FALSE}
+
+opts_knit$set(root.dir = normalizePath('../'))
+
+
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      fig.align = "center",
+                      cache = TRUE,
+                      root.dir = )
+```
+
+
+
+# Warmup
+
+
+First load some libraries.
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+```
+
+
+And the data.
+```{r load-data}
+load("data/tweets_polits.Rdata")
+polits_df <- read_csv("data/german_politicians_twitter.csv")
+```
+
+
+
+
+
+# Join parties-df 
+
+```{r}
+polits_df %>% 
+  dplyr::select(screenName, party) -> polits_parties
+
+tweets_polits %>% 
+  left_join(polits_parties, by = "screenName") -> tweets_polits
+
+
+```
+
+
+
+## How many tweets (initially)?
+
+```{r}
+tweets_polits %>% 
+  nrow
+```
+
+
+
+
+
+## Erase duplicates
+
+```{r eval = FALSE}
+
+# do not run
+tweets_polits %>% 
+  #group_by(screenName) %>% 
+  mutate(is_duplicate = duplicated(id)) %>% 
+  filter(!is_duplicated) -> tweets_with_bug
+
+nrow(tweets_with_bug)  # ~62k
+```
+
+The code above erased way too many tweets. There is some bug. Don't use this output.
+
+Proportion of tweets left (non-duplicates): `r nrow(tweets2)/nrow(tweets_polits)`.
+
+This code works:
+
+```{r cache = TRUE}
+tweets_polits %>% 
+  group_by(id) %>% 
+  filter(row_number() == 1) %>% 
+  ungroup -> tweets_df
+
+tweets_df %>% 
+  nrow  # ~320k
+```
+
+Proportion of tweets left (non-duplicates): `r nrow(tweets_df)/nrow(tweets_polits)`.
+
+
+
+
+# Save data
+
+```{r}
+save(tweets_df, file = "data/tweets_df.Rdata")
+```
+

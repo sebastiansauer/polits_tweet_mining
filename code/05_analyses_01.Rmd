@@ -1,0 +1,209 @@
+---
+title: "Analyses of German politicians' tweets"
+author: "Sebastian Sauer"
+date: "3 8 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      fig.align = "center",
+                      cache = TRUE)
+```
+
+
+
+
+# Warmup
+
+Let's perform some initial analyses of polit tweets.
+
+
+First some libraries.
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+```
+
+
+And the data.
+```{r load-data}
+load("data/tweets_polits.Rdata")
+polits_df <- read_csv("data/german_politicians_twitter.csv")
+```
+
+
+
+# Tweet period 
+
+period from first to most recent tweet
+
+
+```{r}
+tweets_df %>% 
+  group_by(screenName) %>% 
+  summarise(first_tweet = min(created),
+            recent_tweet = max(created)) %>% 
+  mutate(tweet_period = interval(first_tweet, recent_tweet) / ddays(1)) -> polit_periods
+
+
+tweets_df %>% 
+  left_join(polit_periods, by = "screenName") -> dummy
+
+
+```
+
+
+
+
+
+
+## How many accounts, how many tweets each?
+
+## Who tweetet most?
+
+```{r}
+tweets_df %>% 
+  count(screenName, sort = TRUE) -> tweets_per_screenName
+
+
+tweets_per_screenName %>% 
+  head(10)
+
+tweets_per_screenName %>% 
+  top_n(20) %>% 
+  ggplot +
+  aes(x = reorder(screenName, n), y = n) +
+  geom_col() +
+  coord_flip() +
+  geom_text(aes(x = screenName, y = n, label = n))
+
+
+
+```
+
+These numbers cannot be (readily) interpreted, because the data are censored.
+
+
+## Check tweets of one account: "ArminLaschet"
+
+```{r}
+tweets_polits %>% 
+  filter(screenName == "ArminLaschet") -> tweets_ArminLaschet_long
+
+tweets_ArminLaschet_long %>% 
+  nrow  # ~13k
+
+```
+
+Most recent/oldest tweet:
+
+```{r}
+tweets_ArminLaschet_long %>% 
+  filter(screenName == "ArminLaschet") %>% 
+  summarise(min(created),  # 2016-04-10 12:01:21 - 2017-08-02 21:17:45
+            max(created))
+
+tweets_ArminLaschet_long %>% 
+  filter(created %in% c(min(created), max(created))) %>% 
+  select(text)
+
+
+```
+
+
+
+For comparison, we can check whether the the duplicates filter has worked:
+
+```{r}
+tweets_df %>% 
+  filter(screenName == "ArminLaschet") %>% 
+  mutate(is_duplicate = duplicated(id)) %>% 
+  filter(!is_duplicate) %>% nrow  # ~3k
+
+
+tweets_df %>% 
+  filter(screenName == "ArminLaschet") %>% 
+  mutate(is_duplicate = duplicated(id)) %>% 
+  filter(!is_duplicate) %>% nrow  # ~3k
+
+```
+
+
+Most recent/oldest tweet:
+
+
+```{r}
+tweets_df %>% 
+  filter(screenName == "ArminLaschet") %>% 
+  summarise(min(created),
+            max(created))
+
+
+```
+
+
+# Oldest tweet in dataset
+
+```{r}
+tweets_df %>% pull(created) %>% min
+```
+
+
+
+# Get oldest/newest tweet
+
+```{r}
+tweets_df %>% 
+  group_by(screenName) %>% 
+  filter(id == min(id)) %>% 
+  ungroup -> tweets_oldest  # weird error occurred
+
+tweets_oldest %>% as.data.frame -> tweets_oldest
+
+
+tweets_df %>% 
+  dplyr::select(screenName, created) %>% 
+  arrange(created) %>% 
+  head(10) %>% 
+  kable
+
+
+tweets_df %>% 
+  dplyr::select(screenName, created) %>% 
+  arrange(desc(created)) %>% 
+  head(10) %>% 
+  kable
+
+
+
+#save(tweets_oldest, file = paste0("data/tweets_oldest_",lubridate::now()))
+```
+
+
+# Tweets per party
+
+
+```{r}
+tweets_polits %>% 
+  dplyr::count(party) %>% 
+  ggplot +
+  aes(x = reorder(party, n), y = n) +
+  geom_col() +
+  coord_flip()
+  
+```
+
+
+# Tweets per person per party
+
+```{r}
+tweets_polits %>% 
+  group_by(party, person) %>% 
+  summarise(n = n())
+  
+```
+

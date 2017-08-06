@@ -26,13 +26,18 @@ First some libraries.
 library(tidyverse)
 library(readr)
 library(lubridate)
+library(magrittr)
+library(tidytext)
+library(stringr)
+library(viridis)
+library(wordcloud)
 ```
 
 
 And the data.
 ```{r load-data}
-load("../data_polit_twitter/tweets_polits.Rdata")
-polits_df <- read_csv("../data_polit_twitter/german_politicians_twitter.csv")
+load("../data_polit_twitter/tweets_df.Rdata")
+polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
 ```
 
 
@@ -91,7 +96,7 @@ These numbers cannot be (readily) interpreted, because the data are censored.
 ## Check tweets of one account: "ArminLaschet"
 
 ```{r}
-tweets_polits %>% 
+tweets_df %>% 
   filter(screenName == "ArminLaschet") -> tweets_ArminLaschet_long
 
 tweets_ArminLaschet_long %>% 
@@ -188,7 +193,7 @@ tweets_df %>%
 
 
 ```{r}
-tweets_polits %>% 
+tweets_df %>% 
   dplyr::count(party) %>% 
   ggplot +
   aes(x = reorder(party, n), y = n) +
@@ -198,12 +203,271 @@ tweets_polits %>%
 ```
 
 
-# Tweets per person per party
+# Tweets per person
 
 ```{r}
-tweets_polits %>% 
-  group_by(party, person) %>% 
-  summarise(n = n())
+tweets_df %>% 
+  group_by(party, screenName) %>% 
+  summarise(n = n()) %>% 
+  arrange(-n)
   
+```
+
+
+# daily tweets per person
+
+```{r}
+polits_df %>% 
+  top_n(20) %>% 
+  ggplot +
+  aes(x = reorder(screenName, daily_tweets_n), y = daily_tweets_n) +
+  geom_col() +
+  coord_flip() +
+  geom_text(aes(label = n))
+  
+```
+
+For instance, `c_lindner`:
+
+First tweet in dataset:
+```{r}
+polits_df %>% 
+  filter(screenName == "c_lindner") %>% 
+  dplyr::select(n, first_tweet)
+```
+
+
+## Closer look
+
+More than 3000 tweets in roughly a year? That's quite a lot; maybe something's not quite right under the woodshed in these data :(
+
+Let's have a closer look.
+
+
+```{r}
+tweets_df %>% 
+  filter(screenName == "c_lindner") -> lindner
+```
+
+
+
+How many days exactly do we have for this screenName?
+
+```{r}
+lindner %>% 
+  summarise(first = min(created),
+            last = max(created)) %>% 
+  mutate(duration_weeks = (last - first) / dweeks(1),
+         duration_days = (last - first) / ddays(1))
+```
+
+About 60 weeks, and 420 days.
+
+Let's have a look at the distribution of his weekly tweets:
+
+```{r}
+lindner %>% 
+  mutate(week_nr = (created - min(created)) / dweeks(1),
+         day_nr = (created - min(created)) / ddays(1)) %>% 
+  mutate(week_nr = round(week_nr),
+         day_nr = round(day_nr)) -> lindner
+  
+lindner %>% 
+  count(week_nr) %>% 
+  ggplot() +
+  aes(x = week_nr, y = n) +
+  geom_col()
+
+```
+
+
+Let's compute som stats.
+
+Mean:
+
+```{r}
+(lindner_daily_tweets_M <- nrow(lindner) / 420)
+
+lindner %>% 
+  count(day_nr) %>% 
+  summarise(lindner_daily_tweets_m = mean(n),
+            lindner_daily_tweets_sd = sd(n),
+            lindner_daily_tweets_md = median(n),
+            lindner_daily_tweets_iqr = IQR(n)) -> lindner_stats
+
+```
+
+
+
+And the distribution of the daily tweets:
+
+
+```{r}
+
+
+
+lindner %>% 
+  count(day_nr) %>% 
+  ggplot() +
+  aes(x = day_nr, y = n) +
+  geom_col() +
+  geom_hline(yintercept = lindner_stats %>% 
+               slice(1) %>% 
+               pull(lindner_daily_tweets_m), 
+             color = "blue") +
+  geom_text(label = "M", aes(y= lindner_stats %>% 
+               slice(1) %>% 
+               pull(lindner_daily_tweets_m), x = 0), color = "blue") +
+  geom_hline(yintercept = lindner_stats %>% 
+               slice(1) %>% 
+               pull(lindner_daily_tweets_md), 
+             color = "red") +
+  geom_text(label = "Md", aes(y= lindner_stats %>% 
+               slice(1) %>% 
+               pull(lindner_daily_tweets_md), x = 0), color = "red")
+
+```
+
+## Duplicates for Lindner?
+
+Looks all quite reasonable. 
+
+Duplicates?
+
+```{r}
+lindner %>% 
+  mutate(is_duplicate = duplicated(id)) %>% 
+  filter(is_duplicate) %>% nrow
+```
+
+Nup.
+
+
+## Look at some peak days
+
+
+```{r}
+lindner %>% 
+ count(day_nr) %>% 
+  mutate(my_date = ymd("2016-06-09") + day_nr) %>% 
+  arrange(-n)
+```
+
+Ok, let's check Twitter how much he tweeted on 2017-05-11.
+
+...
+It was Rally day in NRW...
+...
+
+
+Hm, I counted roughly 38. Dataframes says 50. Maybe some deletion?
+
+Let's look at those 50.
+
+```{r}
+lindner %>% 
+  filter(created > dmy("10-05-2017"), created < dmy("12-05-2017")) %>% 
+  select(text, created, id) -> lindner_most_tweeted
+```
+
+## Tweets deleted?
+
+Interesting. There are tweets missing in the timeline of `c_lindner`. For instance, tweets 4 to 6 in `lindner_most_tweeted` are appearing in the timeline on Twitter. The ids are:
+
+```{r}
+lindner_most_tweeted %>% 
+  slice(4:6) %>% 
+  select(id)
+```
+
+## Conclusion
+
+OK, so it appears there's an explanation in the differing number of tweets: There are some tweets missing in the timeline on the Website, appearingly deleted by the owner of the account.
+
+
+
+# Daily tweets per party
+
+```{r}
+
+polits_df %>% 
+  group_by(party) %>%
+  summarise(t_pd_m = mean(daily_tweets_n),
+            n_polits = n()) %>% 
+  arrange(-t_pd_m) %>% 
+  ungroup %>% 
+  mutate(party = factor(party, party)) %>% 
+  ggplot +
+  aes(x = party, y = t_pd_m) +
+  geom_point(aes(size = n_polits)) +
+  labs(title = "Mean daily number of tweets as per party",
+       caption = "size reflects number of Twitter accounts") +
+  scale_radius()
+```
+
+
+
+# Most frequent words per party
+
+
+## Read stopwords, compute frequencies
+```{r}
+data(stopwords_de, package = "lsa")
+stopwords_de <- data_frame(token = stopwords_de)
+
+
+
+tweets_df %>% 
+  select(party, text) %>% 
+  unnest_tokens(output = token, input = text) %>% 
+  dplyr::filter(str_detect(token, "[a-z]")) %>% 
+  anti_join(stopwords_de, by = "token") -> tweet_tokens
+
+
+stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
+
+stopwords_de_ses %>% 
+  rename(token = stopword) -> stopwords_de_ses
+
+tweet_tokens %>% 
+  anti_join(stopwords_de_ses, by = "token") -> tweet_tokens
+
+
+tweet_tokens %>% 
+  count(token, sort = TRUE) -> tweets_word_count
+
+```
+
+```{r}
+tweets_word_count %>% 
+  top_n(100) %>% 
+  as.data.frame %>% 
+  arrange(-n)
+```
+
+## Visualize frequencies, bars
+
+
+```{r}
+tweets_word_count %>% 
+  top_n(25) %>% 
+  arrange(-n) %>% 
+  mutate(token = factor(token, levels = rev(token))) %>% 
+  ggplot +
+  aes(x = token, y = n) +
+  geom_col() +
+  scale_fill_viridis() +
+  coord_flip() 
+```
+
+
+## wordcloud
+
+```{r}
+wordcloud(words = tweets_word_count$token, 
+          freq = tweets_word_count$n, 
+          max.words = 100, 
+          scale = c(2,.5), 
+          colors=brewer.pal(6, "Dark2"))
 ```
 

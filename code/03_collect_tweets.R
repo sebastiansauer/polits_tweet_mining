@@ -23,6 +23,9 @@ polits_df %>%
   left_join(tweets_oldest, by = "screenName") -> polits_df
 
 
+soeder <-
+
+
 
 # Scrape tweets
 scrape_polit_tweets <- function(accounts, max_tweets_per_account = 4, tweets_df, start_at = 1, end_at = length(accounts), oldest_ID = NULL){
@@ -88,3 +91,30 @@ tweets_accounts_1to29 %>%
   bind_rows(tweets_accounts_30, tweets_accounts_132, tweets_accounts_161) -> tweets_polits
 
 save(tweets_polits, file = "../data_polit_twitter/tweets_polits.Rdata")
+
+
+
+
+
+
+# Some more accounts
+
+
+soeder <- userTimeline("Markus_Soeder", n = 1700)
+soeder_df <- twListToDF(soeder)
+soeder_df$timestamp <- lubridate::now()
+
+tweets_df %>%
+  bind_rows(soeder_df) -> tweets_df
+
+dummy %>%
+  filter(screenName == "Markus_Soeder") -> dummy
+
+
+
+# dehydrate tweets
+
+tweets_df %>%
+  select(id, timestamp) -> tweets_ids
+
+save(tweets_ids, file = "data/tweets_dehydrated.Rdata")

@@ -37,7 +37,7 @@ library(lubridate)
 And the data.
 ```{r load-data}
 load("../data_polit_twitter/tweets_polits.Rdata")
-polits_df <- read_csv("../data_polit_twitter/german_politicians_twitter.csv")
+polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter.csv")
 ```
 
 
@@ -102,10 +102,86 @@ Proportion of tweets left (non-duplicates): `r nrow(tweets_df)/nrow(tweets_polit
 
 
 
+# Tweet duration
+
+Get oldest and newst tweet per screenName. The difference between is the `tweet period`.
+
+```{r}
+tweets_df %>% 
+  group_by(screenName) %>% 
+  summarise(first_tweet = min(created),
+            recent_tweet = max(created)) %>% 
+  mutate(tweet_period = (recent_tweet - first_tweet) / ddays(1)) -> polits_tweet_times
+
+```
+
+
+Merge this information to the dataset of the politicians `polits_df`.
+
+```{r}
+
+
+polits_df %>% 
+ left_join(polits_tweet_times, by = "screenName") %>% 
+  select(-is_duplicate) -> polits_df
+```
+
+
+Merge this to the `tweets_df` dataframe.
+
+```{r}
+tweets_df %>% 
+  left_join(polits_tweet_times, by = "screenName") -> tweets_df
+```
+
+
+
+# Number of tweets to the `polits_df`
+
+
+Join the info on the number of tweets to the polits_df.
+
+```{r}
+tweets_df %>% 
+  group_by(screenName) %>% 
+  summarise(n = n()) %>% 
+  left_join(polits_df, by = "screenName") -> polits_df
+  
+```
+
+
+
+# Daily tweets
+
+```{r}
+polits_df %>% 
+  mutate(daily_tweets_n = n / tweet_period) -> polits_df
+```
+
+
+# Ensure UTF8
+
+```{r}
+Encoding(tweets_df$text) <- "UTF8"
+```
+
+
+
+
+# Check
+
+```{r}
+
+```
+
+
+
+
 
 # Save data
 
 ```{r}
+write_csv(polits_df, path = "../data_polit_twitter/polits_df.csv")
 save(tweets_df, file = "../data_polit_twitter/tweets_df.Rdata")
 ```
 

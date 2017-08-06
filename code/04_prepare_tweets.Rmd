@@ -36,8 +36,8 @@ library(lubridate)
 
 And the data.
 ```{r load-data}
-load("data/tweets_polits.Rdata")
-polits_df <- read_csv("data/german_politicians_twitter.csv")
+load("../data_polit_twitter/tweets_polits.Rdata")
+polits_df <- read_csv("../data_polit_twitter/german_politicians_twitter.csv")
 ```
 
 
@@ -106,6 +106,6 @@ Proportion of tweets left (non-duplicates): `r nrow(tweets_df)/nrow(tweets_polit
 # Save data
 
 ```{r}
-save(tweets_df, file = "data/tweets_df.Rdata")
+save(tweets_df, file = "../data_polit_twitter/tweets_df.Rdata")
 ```
 

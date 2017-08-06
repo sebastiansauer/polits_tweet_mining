@@ -31,8 +31,8 @@ library(lubridate)
 
 And the data.
 ```{r load-data}
-load("data/tweets_polits.Rdata")
-polits_df <- read_csv("data/german_politicians_twitter.csv")
+load("../data_polit_twitter/tweets_polits.Rdata")
+polits_df <- read_csv("../data_polit_twitter/german_politicians_twitter.csv")
 ```
 
 

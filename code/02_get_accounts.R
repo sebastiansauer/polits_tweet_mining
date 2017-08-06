@@ -2,7 +2,7 @@
 
 library(tidyverse)
 
-polits <- read_csv("data/german_politicians_twitter.csv")
+polits <- read_csv("../data_polit_twitter/german_politicians_twitter.csv")
 
 
 polits %>%
@@ -15,5 +15,5 @@ polits_unique %>%
 
 
 
-write_csv(polits_df, "data/german_politicians_twitter.csv")
+write_csv(polits_df, "../data_polit_twitter/german_politicians_twitter.csv"")
 

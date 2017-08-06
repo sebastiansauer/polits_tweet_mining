@@ -5,7 +5,7 @@ library(twitteR)
 
 
 # Read list of politicians
-polits_df <- read_csv("data/german_politicians_twitter.csv")
+polits_df <- read_csv("../data_polit_twitter/german_politicians_twitter.csv")
 
 
 # check remaining limits
@@ -13,8 +13,8 @@ getCurRateLimitInfo()
 
 
 # Read existing tweet data
-load("data/tweets_df2017-08-03 18/11/18.Rdata")
-load("data/tweets_accounts_1to29.Rdata")
+load("../data_polit_twitter/tweets_df2017-08-03 18/11/18.Rdata")
+load("../data_polit_twitter/tweets_accounts_1to29.Rdata")
 
 
 # get older ids
@@ -78,7 +78,7 @@ tweets_df %>%
 
 
 # save output
-save(tweets_df, file = paste0("data/tweets_df_", lubridate::now(),".Rdata"))
+save(tweets_df, file = paste0("../data_polit_twitter/tweets_df_", lubridate::now(),".Rdata"))
 
 
 
@@ -87,4 +87,4 @@ save(tweets_df, file = paste0("data/tweets_df_", lubridate::now(),".Rdata"))
 tweets_accounts_1to29 %>%
   bind_rows(tweets_accounts_30, tweets_accounts_132, tweets_accounts_161) -> tweets_polits
 
-save(tweets_polits, file = "data/tweets_polits.Rdata")
+save(tweets_polits, file = "../data_polit_twitter/tweets_polits.Rdata")

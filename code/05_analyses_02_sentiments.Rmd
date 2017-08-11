@@ -1,0 +1,275 @@
+---
+title: "06_analyses_02_sentiments"
+author: "Sebastian Sauer"
+date: "6 8 2017"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_knit$set(root.dir = normalizePath('../'))
+
+
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      fig.align = "center",
+                      cache = TRUE)
+```
+
+
+
+
+# Setup
+
+First load some libraries.
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(magrittr)
+library(tidytext)
+library(stringr)
+library(viridis)
+library(wordcloud)
+library(knitr)
+```
+
+
+And the data.
+```{r load-data}
+load("../data_polit_twitter/tweets_df.Rdata")
+load("../data_polit_twitter/tweet_tokens.Rdata")
+
+polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
+```
+
+
+# Prepare sentiment dictionaries
+And the sentiment dictionaries, taken from this source:
+
+R. Remus, U. Quasthoff & G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
+In: *Proceedings of the 7th International Language Ressources and Evaluation (LREC'10)*, pp. 1168-1171, 2010
+
+
+```{r parse-sentiment-dics, echo = FALSE, include = FALSE}
+# data source: http://wortschatz.uni-leipzig.de/en/download/
+
+neg_df <- read_tsv("~/Documents/research/data/SentiWS_v1.8c_Negative.txt", 
+                   col_names = FALSE)
+
+names(neg_df) <- c("Wort_POS", "Wert", "Inflektionen")
+
+
+neg_df %>% 
+  tidyr::separate(col = Wort_POS, 
+                  into = c("token", "POS")) -> neg_df
+
+
+pos_df <- read_tsv("~/Documents/research/data/SentiWS_v1.8c_Positive.txt", col_names = FALSE)
+names(pos_df) <- c("Wort_POS", "Wert", "Inflektionen")
+
+pos_df %>% 
+  tidyr::separate(col = Wort_POS, 
+                  into = c("token", "POS")) -> pos_df
+
+
+bind_rows("neg" = neg_df, "pos" = pos_df, .id = "neg_pos") -> sentiment_df
+
+
+sentiment_df %>% 
+  mutate_if(is.character, tolower) %>% 
+  as_tibble -> sentiment_df
+
+readr::write_csv(sentiment_df, "data/sentiment_df.csv")
+
+rm(pos_df)
+rm(neg_df)
+```
+
+
+# Simple sentiment analysis
+
+
+```{r}
+sentiment_neg <- match(tweet_tokens$token, 
+                       filter(sentiment_df, neg_pos == "neg")$Wort)
+neg_score <- sum(!is.na(sentiment_neg))
+
+sentiment_neg <- tweet_tokens$token %in% 
+  {sentiment_df %>% filter(neg_pos == "neg") %>% pull(Wort)}
+
+sum(sentiment_neg)
+
+sentiment_pos <- match(tweet_tokens$token, 
+                       filter(sentiment_df, neg_pos == "pos")$Wort)
+pos_score <- sum(!is.na(sentiment_pos))
+
+sentiment_pos <- tweet_tokens$token %in% 
+  {sentiment_df %>% filter(neg_pos == "pos") %>% pull(Wort)}
+sum(sentiment_pos)
+
+round(pos_score/neg_score, 1)
+```
+
+
+# Simple sentiment analysis per party
+
+
+```{r}
+
+tweet_tokens %>% 
+  mutate(emo = case_when(
+    token %in% sentiment_df$Wort[sentiment_df$neg_pos == "neg"] ~ "neg",
+    token %in% sentiment_df$Wort[sentiment_df$neg_pos == "pos"] ~ "pos",
+    TRUE ~ "none")
+  ) %>% 
+  count(party, emo) %>% 
+  ungroup %>% 
+  group_by(party) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  ungroup %>% 
+  filter(emo != "none", !(party %in% c(NA, "fraktionslos"))) -> party_emo
+
+kable(party_emo)
+
+
+party_emo %>% 
+  group_by(party) %>% 
+  summarise(emo_sum = sum(prop),
+            emo_diff = diff(prop)) -> party_emo_collapsed
+
+kable(party_emo_collapsed)
+
+
+party_emo %>% 
+  ggplot() +
+  aes(x = party, color = emo, y = prop) +
+  geom_line(aes(group = emo)) +
+  geom_point() +
+  coord_flip() +
+  labs(title = "Anteil emotionaler Wörter",
+       x = "Partei",
+       y = "Anteil",
+       caption = "") +
+  scale_color_brewer(palette = "Set1",
+                     name = "Emotion")
+    
+  
+party_emo_collapsed %>% 
+  rename(`Differenz pos. zu neg. Wörter` = emo_diff,
+         `Summe pos. und neg. Wörter` = emo_sum,) %>% 
+  gather(key = Art, value = Anteil, -party) %>% 
+  ggplot() +
+  aes(x = party, color = Art, y = Anteil) +
+  geom_line(aes(group = Art)) +
+  geom_point() +
+  coord_flip() +
+  labs(title = "Anteil emotionaler Wörter",
+       x = "Partei",
+       y = "Anteil",
+       caption = "CSU tweetet die meisten positiven Wörter. \nLinke und AfD am wenigsten. \nSumme emotionaler Wörter bei allen Parteien ähnlich.") +
+  scale_color_brewer(palette = "Set1",
+                     name = "Emotion") +
+  theme(legend.position = "bottom")
+
+```
+
+# Emo ratios per party
+
+```{r}
+party_emo %>% 
+  group_by(party) %>% 
+  summarise(emo_pos_ratio = n[2]/(n[1])) %>% 
+  arrange(-emo_pos_ratio) %>% 
+  mutate(party = factor(party, party)) %>% 
+  ggplot +
+  aes(x = party, y = emo_pos_ratio) +
+  geom_line(group = 1) +
+  geom_point() +
+  scale_color_brewer(palette = "Set1") +
+  labs(y = "Verhältnis von pos. zu neg. Wörtern",
+       title = paste0("CSU benutzt fast 3 mal so viele pos. Wörter\n",
+                      " wie negative; AfD und Linke tweeten am wenigsten positiv"),
+       x = "Partei")
+  
+```
+
+
+# Weighted Sentiment Analysis (z-scores)
+
+
+```{r}
+
+sentiment_df %>% 
+  rename(token = Wort) -> sentiment_df
+
+tweet_tokens %>% 
+  filter(!(party %in% c(NA, "fraktionslos"))) %>% 
+  left_join(sentiment_df, by = "token") %>% 
+  group_by(party) %>% 
+  summarise(emo_score = (sum(Wert, na.rm = T) / n()) * 100,
+            emo_abs_score = (sum(abs(Wert), na.rm = T) / n()) * 100) -> party_emo_weighted
+
+kable(party_emo_weighted)
+
+```
+
+
+```{r}
+party_emo_weighted %>% 
+  mutate(emo_score = scale(emo_score),
+         emo_abs_score = scale(emo_abs_score)) %>% 
+  gather(key = `Emo-Kennzahl`, `Relative Stärke`, -party) %>%
+  mutate(`Emo-Kennzahl` = recode(`Emo-Kennzahl`,
+                                 emo_abs_score = "Emotionalität",
+                                 emo_score = "Positivität")) %>% 
+  ggplot() +
+  aes(x = party, y = `Relative Stärke`, color = `Emo-Kennzahl`) +
+  geom_line(aes(group = `Emo-Kennzahl`)) +
+  geom_point() +
+  coord_flip() +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "Gewichtete Sentiment-Analyse \n(z-Werte) einiger Politiker-Tweets\n n = 320k",
+       x =  'Partei'),
+       caption = "CSU und AfD stechen als Gegensätze hervor:\nDie CSU ist wenig emotional, aber wenn, dann positiv.\nBei der AfD ist es umgekehrt.")
+```
+
+
+# Check
+
+To double-check, let's compute the emo scores of two extreme cases again, to see whether the results are the same:
+
+```{r}
+tweet_tokens %>% 
+  filter(party %in% c("AfD", "CSU")) %>% 
+  left_join(sentiment_df, by = "token") %>% 
+  group_by(party) %>% 
+  summarise(emo_dif = sum(Wert, na.rm = T) / n(),
+            emo_sum = sum(abs(Wert), na.rm = T) / n()) %>% 
+  kable
+```
+
+Seems to be ok.
+
+
+## Weighted Sentiment analysis (raw values, no z-scores)
+
+
+```{r}
+party_emo_weighted %>% 
+ # mutate(emo_score = `*`(emo_score, 1)) %>% 
+  gather(key = emo_type, emo_value, -party) %>%
+  ggplot() +
+  aes(x = party, y = emo_value, color = emo_type) +
+  geom_line(aes(group = emo_type)) +
+  geom_point() +
+  coord_flip() +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "Gewichtete Sentiment-Analyse \neiniger Politiker-Tweets\n n = 320k",
+       x =  "Partei",
+       caption = "CSU und AfD stechen als Gegensätze hervor:\nDie CSU ist wenig emotional, aber wenn, dann positiv.\nBei der AfD ist es umgekehrt.",
+      y = "Emotionalität")
+```
+

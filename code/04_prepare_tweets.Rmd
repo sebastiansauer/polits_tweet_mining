@@ -175,6 +175,14 @@ Encoding(tweets_df$text) <- "UTF8"
 ```
 
 
+# Correct typo
+
+```{r}
+tweets_df %>% 
+  mutate(party = recode(party, Grune = "Gruene")) -> tweets_df
+  
+  
+```
 
 
 

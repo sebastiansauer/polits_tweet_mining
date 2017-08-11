@@ -6,6 +6,9 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath('../'))
+
+
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       fig.align = "center",
@@ -14,13 +17,12 @@ knitr::opts_chunk$set(echo = TRUE,
 
 
 
-
-# Warmup
-
 Let's perform some initial analyses of polit tweets.
 
+# Setup
 
-First some libraries.
+
+First load some libraries.
 
 ```{r}
 library(tidyverse)
@@ -31,6 +33,7 @@ library(tidytext)
 library(stringr)
 library(viridis)
 library(wordcloud)
+library(SnowballC)
 ```
 
 
@@ -185,7 +188,7 @@ tweets_df %>%
 
 
 
-#save(tweets_oldest, file = paste0("data/tweets_oldest_",lubridate::now()))
+#save(tweets_oldest, file = paste0("data_polit_twitter/tweets_oldest_",lubridate::now()))
 ```
 
 
@@ -424,6 +427,9 @@ tweets_df %>%
   anti_join(stopwords_de, by = "token") -> tweet_tokens
 
 
+save(tweet_tokens, file = "../data_polit_twitter/tweet_tokens.Rdata")
+
+
 stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
 
 stopwords_de_ses %>% 
@@ -431,8 +437,12 @@ stopwords_de_ses %>%
 
 tweet_tokens %>% 
   anti_join(stopwords_de_ses, by = "token") -> tweet_tokens
+```
 
 
+```{r}
+
+load("../data_polit_twitter/tweet_tokens.Rdata")
 tweet_tokens %>% 
   count(token, sort = TRUE) -> tweets_word_count
 
@@ -445,7 +455,7 @@ tweets_word_count %>%
   arrange(-n)
 ```
 
-## Visualize frequencies, bars
+## Visualize summariy frequencies (bars)
 
 
 ```{r}
@@ -461,7 +471,7 @@ tweets_word_count %>%
 ```
 
 
-## wordcloud
+## wordcloud, summary frequencies
 
 ```{r}
 wordcloud(words = tweets_word_count$token, 
@@ -469,5 +479,183 @@ wordcloud(words = tweets_word_count$token,
           max.words = 100, 
           scale = c(2,.5), 
           colors=brewer.pal(6, "Dark2"))
+```
+
+
+## Most frequent terms per party
+
+
+```{r}
+
+
+tweets_df %>% 
+  select(party, text) %>% 
+  unnest_tokens(output = token, input = text) %>% 
+  dplyr::filter(str_detect(token, "[a-z]")) %>% 
+  anti_join(stopwords_de, by = "token") -> tweet_tokens
+
+
+stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
+
+stopwords_de_ses %>% 
+  rename(token = stopword) -> stopwords_de_ses
+
+tweet_tokens %>% 
+  anti_join(stopwords_de_ses, by = "token") -> tweet_tokens
+
+
+save(tweet_tokens, file = "../data_polit_twitter/tweet_tokens.Rdata")
+
+```
+
+```{r}
+
+load("../data_polit_twitter/tweet_tokens.Rdata")
+
+
+tweet_tokens %>% 
+  count(party, token, sort = TRUE) -> tweets_per_party_word_count
+
+```
+
+
+## Frequencies par party (bars)
+```{r}
+
+tweets_per_party_word_count %>% 
+  filter(party != "NA") %>% 
+  sample_n(1000) %>% 
+  group_by(party) %>% 
+  arrange(-n) %>% 
+  slice(1:10) %>% 
+  ungroup %>% 
+  mutate(token = factor(token)) %>% 
+  ggplot() +
+  aes(x = reorder(token, n), y = n) +
+  geom_col() +
+  facet_wrap(~party, scales = "free", drop = TRUE) +
+  coord_flip()
+```
+
+
+## Same, but with Wordstemming
+
+
+```{r}
+tweet_tokens %>% 
+  mutate(token_stem = wordStem(.$token, language = "german")) %>% 
+  count(party, token_stem, sort = TRUE) -> tweets_per_party_word_count_stemmed
+
+save(tweets_per_party_word_count_stemmed,
+     file = "../data_polit_twitter/tweets_per_party_word_count_stemmed.Rdata")
+H```
+
+
+
+
+```{r}
+tweets_per_party_word_count_stemmed %>% 
+  group_by(party) %>% 
+  top_n(10) %>% 
+  arrange(-n) %>% 
+  ungroup %>% 
+  mutate(token2 = factor(paste(party, token_stem)),
+         token2 = reorder(token2, rank(n))) %>% 
+  ggplot +
+  aes(x = token2, y = n) +
+  facet_wrap(~ party, scales = "free") +
+  geom_col() +
+  scale_fill_viridis() +
+  coord_flip() +
+  scale_x_discrete(labels = tweets_per_party_word_count$token) +
+  labs(title = "Die häufigsten Wörter der Tweets, gruppiert nach Parteien",
+       x = "Wörter", 
+       y = "Häufigkeit",
+       caption = "AfD spricht von sich, die anderen von der AfD.")
+
+
+```
+
+
+## Stemm party variants (spdde --> spd)
+
+Also, there are duplicates such as "spdbt" "spdde" and "spd"; those instances should be stemmed to "spd", and the like.
+
+```{r}
+
+stemm_party <- function(df, col, party){
+  
+  
+  col_quo <- enquo(col)
+  col_name <- quo_name(col_quo)
+  party_quo <- enquo(party)
+  party_name <- quo_name(party_quo)
+  
+  
+  # col2 <- paste0(quo_name(enquo(df)), "$", quo_name(enquo(col)))
+ 
+  
+  
+  
+  df %>% 
+    mutate(output = str_replace(string = !!col_quo,
+                                pattern = paste0(party_quo,"\\w+"),
+                                replacement = 
+                                  party_name)) %>% 
+    filter(!is.na(output)) -> dummy
+  
+  
+  return(dummy)
+ 
+}
+```
+
+For comparison, execute this function non-programmatically, but interactively (for debugging reasons):
+
+```{r}
+dummy <- tweets_per_party_word_count_stemmed %>% 
+  mutate(output = str_replace(string = 
+                           .$token_stem,
+                         pattern = "afd\\w+",
+                         replacement = "afd")) %>% 
+  filter(party == "AfD")
+
+```
+
+
+Now see whether the function runs as expected:
+
+
+```{r}
+debug(stemm_party)
+dummy <- stemm_party(df = tweets_per_party_word_count_stemmed,
+                     col = token_stem,
+                     party = "afd")
+
+dummy %>% 
+  filter(party == "AfD")
+```
+
+
+
+Get different parties:
+
+```{r}
+parties <- unique(polits_df$party)
+parties
+```
+
+
+
+```{r}
+dummy <- list()
+
+
+
+for(i in seq_along(parties)){
+  x[[i]] <- stemm_party(df = tweets_per_party_word_count_stemmed,
+                        col = token_stem,
+                        party = parties[i])  
+}
 ```
 

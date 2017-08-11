@@ -16,8 +16,11 @@ polits_unique %>%
   filter(human == "y", party != "invalid") -> polits_df
 
 
+polits_df %>%
+  mutate(party = str_to_lower(party)) -> polits_df
 
-write_csv(polits_df, "../data_polit_twitter/german_politicians_twitter.csv"")
+
+write.csv(polits_df, file = "../data_polit_twitter/german_politicians_twitter.csv")
 
 
 # get followers

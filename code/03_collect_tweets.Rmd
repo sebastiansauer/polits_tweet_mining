@@ -1,0 +1,258 @@
+---
+title: "03 collect tweets"
+author: "Sebastian Sauer"
+date: "14 8 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Important:
+
+Do not run this script out of curiosity, because data collecting via the twitter api is not easy to automate, and requires some manual work (and some time). Rather, use this script to update and add new (twitter) data.
+
+# load packages
+
+
+```{r}
+library(tidyverse)
+library(twitteR)
+```
+
+
+
+
+**ATTENTION: raw data area. handle with care.**
+
+
+
+**main raw data file/ output data frame: "tweets_polits_raw.Rdata"**
+
+
+
+# check remaining limits
+
+
+```{r}
+getCurRateLimitInfo()
+```
+
+
+
+
+# Read existing tweet data
+
+## Old data
+This is older, partial data, not needed in later runs
+
+```{r load-old-data, eval = FALSE}
+load("../data_polit_twitter/tweets_df2017-08-03 18/11/18.Rdata")
+load("../data_polit_twitter/tweets_accounts_1to29.Rdata")
+load("../data_polit_twitter/tweets_df.Rdata")
+```
+
+
+## This is the main raw data file
+
+```{r}
+load( "../data_polit_twitter/raw/tweets_polits.RData")
+
+
+backup <- tweets_polits_raw
+```
+
+
+
+
+
+# Get older ids
+
+
+```{r}
+polits_df %>%
+  left_join(tweets_oldest, by = "screenName") -> polits_df
+
+```
+
+
+
+# Scrape tweets function
+
+
+```{r scrape-polits-tweets-fun}
+scrape_polit_tweets <- function(accounts,  # list of accounts to be collected
+                                max_tweets_per_account = 4,  # how many tweets per account
+                                tweets_df,   # df with tweets to append to
+                                start_at = 1,  # start at which account?
+                                end_at = length(accounts),  # and at which account?
+                                oldest_ID = NULL, ...){  # whats the oldest tweet id to include?
+  
+  
+  # this function collects tweets through API.
+  # returns: dataframe of tweets
+
+  library(tidyverse)
+  library(twitteR)
+
+
+  # create base df where new tweets are appended to
+  output_list <- userTimeline(accounts[1], n = 1, includeRts = TRUE)
+  output <- twListToDF(output_list)
+
+  # loop through all accounts and get tweets for each account
+  for (i in start_at:end_at) {
+    tweets_temp <- userTimeline(accounts[i],
+                                n = max_tweets_per_account,
+                                includeRts = TRUE,
+                                maxID = oldest_ID[i], ...)
+    if (length(tweets_temp) > 0) {
+      tweets_temp_df <- twListToDF(tweets_temp)
+      tweets_temp_df$timestamp <- lubridate::now()
+      output %>% bind_rows(tweets_temp_df) -> output
+    }
+
+    # print status
+
+    max_runs <- (end_at - start_at)
+    runs_completed <- (start_at - i)
+
+    cat(accounts[i]," number of tweets retrieved: ", length(tweets_temp),", account ", runs_completed," of ",  max_runs, "\n")
+  }
+
+  return(output)
+}  # end of `scrape_polit_tweets`
+
+```
+
+
+# Scrape tweets
+
+
+Repeat the following steps several times, depending on rate limits,  until sufficient tweets have been collected.
+
+Note that older runs of data collection are not documented here. Only the final output is documented.
+
+```{r do-the-scraping}
+
+#debug(scrape_polit_tweets)
+
+tweets_fdp_01 <- scrape_polit_tweets(accounts = fdps$screenName,
+                    tweets_df = backup,
+                    start_at = 2,
+                    max_tweets_per_account = 3200)
+
+
+save(tweets_fdp_01, file = "../data_polit_twitter/raw/tweets_fdp_01.RData")
+
+```
+
+
+# Add new data to existing data (bind rows)
+
+Note that the object names of update data need be adapted as needed.
+
+```{r}
+tweets_polits %>%
+  bind_rows(tweets_fdp_01) -> tweets_polits_raw
+```
+
+
+
+
+# Add some more accounts
+
+
+Some accounts deemed important where missing. Those where added by hand. 
+
+So far:
+
+- Markus Soeder
+
+
+```{r}
+
+soeder <- userTimeline("Markus_Soeder", n = 3200)
+soeder_df <- twListToDF(soeder)
+soeder_df$timestamp <- lubridate::now()
+
+tweets_polits_raw %>%
+  bind_rows(soeder_df) -> tweets_polits_raw
+```
+
+
+Check it:
+
+```{r}
+tweets_polits_raw %>%
+  filter(screenName == "Markus_Soeder") %>% 
+  pull(text) %>% head
+```
+
+
+
+
+
+# dehydrate tweets
+
+For legal reasons, the full data are not provided. Rather, Twitter only allows to spread "dehydrated" tweets, ie., the IDs of the tweets only. These data are provided here only.
+
+
+```{r}
+tweets_polits_raw %>%
+  select(id, timestamp) -> tweets_ids
+
+save(tweets_ids, file = "data/tweets_dehydrated.Rdata")
+```
+
+
+
+# Fix multibyte strings
+
+
+```{r}
+Encoding(tweets_polits_raw$text) <- "UTF8"
+# tweets_df$text <- stringi::stri_enc_toutf8(tweets_df$text)
+Encoding(tweets_polits_raw$screenName) <- "UTF8"
+Encoding(tweets_polits_raw$party) <- "UTF8"
+
+```
+
+
+
+
+
+# Some checks
+
+## Number of accounts
+```{r}
+tweets_polits_raw %>%
+  summarise(ns = n_distinct(screenName))
+```
+
+
+
+
+
+
+
+# Save main raw data file
+
+
+```{r}
+save(tweets_polits_raw, file = "../data_polit_twitter/raw/tweets_polits_raw.Rdata")
+
+```
+
+
+
+# save backup output
+
+```{r}
+save(tweets_polits_raw, file = paste0("../data_polit_twitter/raw/tweets_polits_raw_", lubridate::now(),".Rdata"))
+```
+
+
+

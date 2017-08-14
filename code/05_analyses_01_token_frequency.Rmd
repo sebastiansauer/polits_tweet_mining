@@ -97,6 +97,67 @@ tweets_per_screenName %>%
 These numbers cannot be (readily) interpreted, because the data are censored.
 
 
+## How many accounts (per party)
+
+In total, how many accounts are in the dataset?
+
+```{r}
+tweets_df %>% 
+  count(screenName) %>% nrow
+```
+
+```{r}
+tweets_df %>% 
+  group_by(party) %>% 
+  summarise(accounts_n = n_distinct(screenName)) %>% 
+  ungroup %>% 
+  ggplot() +
+  aes(x = reorder(party, -accounts_n), y = accounts_n) + 
+  geom_col()
+```
+
+
+
+## How many tweets per party
+
+```{r}
+tweets_df %>% 
+  count(party) %>% 
+  ggplot +
+  aes(x = reorder(party, -n), y = n) +
+  geom_col()
+```
+
+
+## Tweets per time
+
+```{r fig-tweets-per-time, cache = TRUE}
+
+tweets_df %>% 
+  filter(!party %in% c(NA, "fraktionslos")) %>% 
+  #sample_n(1000) %>% 
+  ggplot +
+  aes(x = created, y = party) +
+  geom_jitter(aes(color = party)) -> p_tweets_per_time
+
+p_tweets_per_time
+
+tweets_df %>% 
+  filter(!party %in% c(NA, "fraktionslos")) %>% 
+  #sample_n(1000) %>% 
+  ggplot +
+  aes(y = created, x = party) +
+  geom_boxplot(aes(fill = party, color = party)) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  coord_flip()
+
+```
+
+
+#
+
+
 ## Check tweets of one account: "ArminLaschet"
 
 ```{r}
@@ -414,36 +475,40 @@ polits_df %>%
 # Most frequent words per party
 
 
-## Read stopwords, compute frequencies
-```{r}
+## Read stopwords, unnest tokens, compute frequencies
+```{r read-stopwords}
 data(stopwords_de, package = "lsa")
 stopwords_de <- data_frame(token = stopwords_de)
-
-
-
-tweets_df %>% 
-  select(party, text) %>% 
-  unnest_tokens(output = token, input = text) %>% 
-  dplyr::filter(str_detect(token, "[a-z]")) %>% 
-  anti_join(stopwords_de, by = "token") -> tweet_tokens
-
-
-save(tweet_tokens, file = "../data_polit_twitter/tweet_tokens.Rdata")
-
 
 stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
 
 stopwords_de_ses %>% 
   rename(token = stopword) -> stopwords_de_ses
 
-tweet_tokens %>% 
-  anti_join(stopwords_de_ses, by = "token") -> tweet_tokens
+```
+
+```{r unnest-tokens}
+tweets_df %>% 
+  select(party, text, screenName) %>% 
+  unnest_tokens(output = token, input = text) %>%  
+  dplyr::filter(str_detect(token, "[a-z]")) -> tweets_token_including_stopwords
+
+```
+
+`unnest_tokens` performs `str_to_lower` too.
+
+
+```{r antijoin-stopwords-to-tokens}
+tweets_token_including_stopwords %>% 
+  anti_join(stopwords_de_ses, by = "token") %>% 
+  anti_join(stopwords_de, by = "token") -> tweet_tokens
 ```
 
 
-```{r}
+This one needs some seconds:
 
-load("../data_polit_twitter/tweet_tokens.Rdata")
+```{r}
+#load("../data_polit_twitter/tweet_tokens.Rdata")
 tweet_tokens %>% 
   count(token, sort = TRUE) -> tweets_word_count
 
@@ -456,7 +521,7 @@ tweets_word_count %>%
   arrange(-n)
 ```
 
-## Visualize summariy frequencies (bars)
+## Visualize summary frequencies (bars)
 
 
 ```{r}
@@ -468,7 +533,9 @@ tweets_word_count %>%
   aes(x = token, y = n) +
   geom_col() +
   scale_fill_viridis() +
-  coord_flip() 
+  coord_flip()  +
+  labs("Welche Wörter wurden am häufigsten getweetet?",
+       caption = "Stopwörter bereits entfernt.")
 ```
 
 
@@ -505,7 +572,6 @@ tweet_tokens %>%
   anti_join(stopwords_de_ses, by = "token") -> tweet_tokens
 
 
-save(tweet_tokens, file = "../data_polit_twitter/tweet_tokens.Rdata")
 
 ```
 
@@ -701,6 +767,10 @@ tweets_per_party_word_count_stemmed2 %>%
 
 ```
 
+# Compare usage of word types
+
+
+
 
 # What's speaks the AfD about what the others are not interested in?
 
@@ -737,6 +807,22 @@ setdiff(top_100s$token[top_100s$party_ID == 8],
 outer(1:nrow(mat), 1:ncol(mat), FUN = function(i,j) setdiff(top_100s$token[top_100s$party_ID == i],top_100s$token[top_100s$party_ID == j]))
 
 
+
+```
+
+
+
+
+# Save token data
+
+
+
+```{r}
+
+save(tweet_tokens, file = "../data_polit_twitter/tweet_tokens.Rdata")
+
+
+save(tweets_token_including_stopwords, file = "../data_polit_twitter/tweets_token_including_stopwords.Rdata")
 
 ```
 

@@ -1,0 +1,133 @@
+---
+title: "Computing a populism measure"
+author: "Sebastian Sauer"
+date: "3 8 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath('../'))
+
+
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      fig.align = "center",
+                      cache = TRUE)
+```
+
+
+
+Let's perform some initial analyses of polit tweets.
+
+# Setup
+
+
+First load some libraries.
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(magrittr)
+library(tidytext)
+library(stringr)
+library(viridis)
+library(wordcloud)
+library(SnowballC)
+library(knitr)
+```
+
+
+And the data.
+```{r load-data}
+load("../data_polit_twitter/tweets_df.Rdata")
+polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
+```
+
+
+
+# Aspects of the populism measure
+
+
+- Relative number of exclamation marks '!'
+- Relative number of '1 / question marks' '?'
+- Positivity score (score of 'Pos - Neg')
+- Emotionality score (socre of 'Pos + Neg')
+- Ratio of adjectives/adverbs
+- ~~Mean number of characters per sentence~~
+- Mean number of characters per word
+- Relative number of semicolons ';'
+- Relative number of words in CAPITAL LETTERS
+
+
+
+# Get quotation/exclamation marks per policitian
+
+
+```{r}
+head(tweets_df)
+
+tweets_df %>% 
+  select(party, screenName, text) %>% 
+  group_by(screenName) %>% 
+  summarise(exclamation_marks_abs = str_count(text, pattern = "!") %>% sum,
+            exclamation_marks_rel = exclamation_marks_abs / n(),
+            party = first(party),
+            complement_question_mark_rel = str_count(text, pattern = "\\?") %>% 
+              sum %>% `/`(1, .)) -> populism_scores
+  
+```
+
+
+Join with polits df
+
+
+Not sure if this piece is needed.
+
+```{r eval = FALSE}
+populism_scores %>% 
+  select(-party)  %>%  # prevent duplicate column
+  full_join(polits_df, by = "screenName") -> dummy
+```
+
+
+# Join emotionality scores to polits_df
+
+## Add number of emotional words per person
+
+```{r}
+populism_scores %>% 
+  left_join(screenName_emo_words) -> populism_scores
+
+names(populism_scores)
+glimpse(populism_scores)
+
+```
+
+
+```{r}
+populism_scores %>% 
+  left_join(screenName_emo_score) -> populism_scores
+
+names(populism_scores)
+glimpse(populism_scores)
+
+```
+
+## Add type of word usage (POS tags)
+
+```{r}
+glimpse(screenName_POS_n)
+
+screenName_POS_n %>% 
+  select(-party) %>% 
+  full_join(populism_scores, by = "screenName") -> populism_scores
+```
+
+
+# Save data
+
+```{r}
+save(populism_scores, file = "../data_polit_twitter/populism_scores.Rdata")
+```
+

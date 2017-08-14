@@ -34,10 +34,13 @@ library(lubridate)
 ```
 
 
-And the data.
-```{r load-data}
-load("../data_polit_twitter/tweets_polits.Rdata")
-polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter.csv")
+And the data - raw data.
+
+```{r load-raw-data}
+getwd()
+load("../data_polit_twitter/raw/tweets_polits_raw.Rdata")
+
+polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter_raw.csv")
 ```
 
 
@@ -46,14 +49,63 @@ polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter.csv"
 
 # Join parties-df 
 
+
+
+Convert to lower_case
+```{r}
+
+polits_df %>% 
+  mutate(party = str_to_lower(party)) -> polits_df
+```
+
+Check if the screename is *not* preceded by an asterisk '@':
+
+```{r}
+polits_df %>% pull(screenName) %>% head
+```
+
+Otherwise, change in raw data file (exclude '@').
+
+
+Glimpse
+
+```{r}
+polits_df %>% 
+  glimpse
+```
+
+
+
 ```{r}
 polits_df %>% 
   dplyr::select(screenName, party) -> polits_parties
 
-tweets_polits %>% 
+tweets_polits_raw %>% 
   left_join(polits_parties, by = "screenName") -> tweets_polits
 
 
+```
+
+Glimpse:
+
+```{r}
+tweets_polits %>% glimpse
+```
+
+
+
+
+# Join party data to acount names
+
+
+Repair some merging errors - run only if necessary.
+
+```{r eval = FALSE}
+tweets_polits_raw %>% 
+  select(-c(human.x, human.y, party, name.y),
+           name = name.x) -> tweets_polits_raw
+
+names(tweets_polits_raw)
 ```
 
 
@@ -66,6 +118,11 @@ tweets_polits %>%
 ```
 
 
+## Save this updated data (joined with party names)
+
+```{r}
+save(tweets_polits, file = "../data_polit_twitter/raw/tweets_polits_with_party_names.RData")
+```
 
 
 
@@ -73,7 +130,7 @@ tweets_polits %>%
 
 ```{r eval = FALSE}
 
-# do not run
+# do NOT run
 tweets_polits %>% 
   #group_by(screenName) %>% 
   mutate(is_duplicate = duplicated(id)) %>% 
@@ -95,10 +152,31 @@ tweets_polits %>%
   ungroup -> tweets_df
 
 tweets_df %>% 
-  nrow  # ~320k
+  nrow  # ~380k
 ```
 
+
+
+
 Proportion of tweets left (non-duplicates): `r nrow(tweets_df)/nrow(tweets_polits)`.
+
+
+
+
+
+
+
+# Ensure UTF8
+
+
+```{r}
+Encoding(tweets_df$text) <- "UTF8"
+tweets_df$text <- stringi::stri_enc_toutf8(tweets_df$text)
+tweets_df$screenName <- stringi::stri_enc_toutf8(tweets_df$screenName)
+tweets_df$party <- stringi::stri_enc_toutf8(tweets_df$party)
+```
+
+
 
 
 
@@ -113,6 +191,8 @@ tweets_df %>%
             recent_tweet = max(created)) %>% 
   mutate(tweet_period = (recent_tweet - first_tweet) / ddays(1)) -> polits_tweet_times
 
+names(polits_tweet_times)
+
 ```
 
 
@@ -120,23 +200,30 @@ Merge this information to the dataset of the politicians `polits_df`.
 
 ```{r}
 
+names(polits_df)
 
 polits_df %>% 
- left_join(polits_tweet_times, by = "screenName") %>% 
-  select(-is_duplicate) -> polits_df
+ left_join(polits_tweet_times, by = "screenName") -> polits_df
+
+names(polits_df)
+
 ```
 
 
 Merge this to the `tweets_df` dataframe.
 
 ```{r}
+names(tweets_df)
 tweets_df %>% 
+  select(-c(first_tweet, recent_tweet, tweet_period)) %>%
   left_join(polits_tweet_times, by = "screenName") -> tweets_df
+
+names(tweets_df)
 ```
 
 
 
-# Number of tweets to the `polits_df`
+# Join the number of tweets to the `polits_df`
 
 
 Join the info on the number of tweets to the polits_df.
@@ -155,7 +242,8 @@ tweets_df %>%
 
 ```{r}
 polits_df %>% 
-  mutate(daily_tweets_n = n / tweet_period) -> polits_df
+  mutate(daily_tweets_n = n / tweet_period,
+         yearly_tweets_n = daily_tweets_n * 365) -> polits_df
 ```
 
 
@@ -174,7 +262,11 @@ polits_df %>%
 ```{r}
 tweets_df %>% 
   mutate(party = recode(party, Grune = "Gruene")) -> tweets_df
-  
+
+
+polits_df %>% 
+  mutate(party = recode(party, Grune = "Gruene")) -> polits_df
+
   
 ```
 

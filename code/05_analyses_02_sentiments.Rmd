@@ -34,6 +34,7 @@ library(stringr)
 library(viridis)
 library(wordcloud)
 library(knitr)
+library(viridis)
 ```
 
 
@@ -52,6 +53,8 @@ And the sentiment dictionaries, taken from this source:
 R. Remus, U. Quasthoff & G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
 In: *Proceedings of the 7th International Language Ressources and Evaluation (LREC'10)*, pp. 1168-1171, 2010
 
+
+RUN ONLY once, to prepare the dictionary.
 
 ```{r parse-sentiment-dics, echo = FALSE, include = FALSE}
 # data source: http://wortschatz.uni-leipzig.de/en/download/
@@ -92,26 +95,42 @@ rm(neg_df)
 # Simple sentiment analysis
 
 
+## Load sentiment dictionnary
+
 ```{r}
+sentiment_df <- read_csv("data/sentiment_df.csv")
+names(sentiment_df)
+```
+
+
+## Perform sentiment analysis, simple
+
+```{r}
+
+
 sentiment_neg <- match(tweet_tokens$token, 
-                       filter(sentiment_df, neg_pos == "neg")$Wort)
+                       filter(sentiment_df, neg_pos == "neg")$token)
 neg_score <- sum(!is.na(sentiment_neg))
 
+# alternative way:
+
 sentiment_neg <- tweet_tokens$token %in% 
-  {sentiment_df %>% filter(neg_pos == "neg") %>% pull(Wort)}
+  {sentiment_df %>% filter(neg_pos == "neg") %>% pull(token)}
 
 sum(sentiment_neg)
 
 sentiment_pos <- match(tweet_tokens$token, 
-                       filter(sentiment_df, neg_pos == "pos")$Wort)
+                       filter(sentiment_df, neg_pos == "pos")$token)
 pos_score <- sum(!is.na(sentiment_pos))
 
 sentiment_pos <- tweet_tokens$token %in% 
   {sentiment_df %>% filter(neg_pos == "pos") %>% pull(Wort)}
 sum(sentiment_pos)
 
-round(pos_score/neg_score, 1)
+round(pos_score/neg_score, 3)
 ```
+
+**Attention** It seems strange that this ratio is nearly equal to 2. Double check.
 
 
 # Simple sentiment analysis per party
@@ -121,8 +140,8 @@ round(pos_score/neg_score, 1)
 
 tweet_tokens %>% 
   mutate(emo = case_when(
-    token %in% sentiment_df$Wort[sentiment_df$neg_pos == "neg"] ~ "neg",
-    token %in% sentiment_df$Wort[sentiment_df$neg_pos == "pos"] ~ "pos",
+    token %in% sentiment_df$token[sentiment_df$neg_pos == "neg"] ~ "neg",
+    token %in% sentiment_df$token[sentiment_df$neg_pos == "pos"] ~ "pos",
     TRUE ~ "none")
   ) %>% 
   count(party, emo) %>% 
@@ -139,6 +158,7 @@ party_emo %>%
   group_by(party) %>% 
   summarise(emo_sum = sum(prop),
             emo_diff = diff(prop)) -> party_emo_collapsed
+
 
 kable(party_emo_collapsed)
 
@@ -197,17 +217,65 @@ party_emo %>%
 ```
 
 
-# Weighted Sentiment Analysis (z-scores)
+# Number of emo words per person (account/screenName)
+
+
+```{r comp-nr-ofemo-words-per-person}
+names(tweet_tokens)
+
+tweet_tokens %>% 
+  mutate(emo_type = case_when(
+    token %in% sentiment_df$token[sentiment_df$neg_pos == "neg"] ~ "neg",
+    token %in% sentiment_df$token[sentiment_df$neg_pos == "pos"] ~ "pos",
+    TRUE ~ "none")
+  ) %>% 
+  filter(emo_type != "none") %>% 
+  group_by(screenName, emo_type) %>% 
+  summarise(emo_words_n = n()) %>% 
+  spread(key = emo_type, value = emo_words_n) %>% 
+  rename(neg_words_n = neg, pos_words_n = pos) %>% 
+  mutate(emo_words_n = neg_words_n + pos_words_n,
+         neg_words_ratio = neg_words_n / pos_words_n) %>% 
+  ungroup -> screenName_emo_words
+
+
+
+names(screenName_emo_words)
+
+
+
+```
 
 
 ```{r}
+screenName_emo_words %>% 
+  #filter(!is.na(emo_words_n)) %>% 
+  na.omit %>% 
+  arrange(-emo_words_n) %>% 
+  slice(1:25) %>% 
+  ggplot +
+  aes(x = reorder(screenName, emo_words_n), y = emo_words_n) +
+  geom_col(aes(fill = neg_words_ratio)) +
+  coord_flip() +
+  scale_fill_gradient(low = "white", high = "red")
+```
 
-sentiment_df %>% 
-  rename(token = Wort) -> sentiment_df
+
+# Weighted Sentiment Analysis (z-scores)
+
+
+## Sentiment scores per party
+
+```{r}
+
+names(sentiment_df)
+names(tweet_tokens)
+#sentiment_df %>% 
+#  rename(token = Wort) -> sentiment_df
 
 tweet_tokens %>% 
   filter(!(party %in% c(NA, "fraktionslos"))) %>% 
-  left_join(sentiment_df, by = "token") %>% 
+  inner_join(sentiment_df, by = "token") %>% 
   group_by(party) %>% 
   summarise(emo_score = (sum(Wert, na.rm = T) / n()) * 100,
             emo_abs_score = (sum(abs(Wert), na.rm = T) / n()) * 100) -> party_emo_weighted
@@ -232,9 +300,163 @@ party_emo_weighted %>%
   coord_flip() +
   scale_color_brewer(palette = "Set1") +
   labs(title = "Gewichtete Sentiment-Analyse \n(z-Werte) einiger Politiker-Tweets\n n = 320k",
-       x =  'Partei'),
+       x =  "Partei",
        caption = "CSU und AfD stechen als Gegensätze hervor:\nDie CSU ist wenig emotional, aber wenn, dann positiv.\nBei der AfD ist es umgekehrt.")
 ```
+
+
+## Sentiment scores per person (screenName)
+
+
+```{r comp-senti-tweets-df}
+
+tweet_tokens %>% 
+  filter(!(party %in% c(NA, "fraktionslos"))) %>% 
+  inner_join(sentiment_df, by = "token") -> tweet_tokens_sentis
+
+glimpse(tweet_tokens_sentis)
+```
+
+
+Now compute the emo scores
+
+```{r comp-emo-scores}
+tweet_tokens_sentis %>% 
+  group_by(screenName) %>% 
+  summarise(emo_score = (sum(Wert, na.rm = T) / n()) * 100,
+            emo_abs_score = (sum(abs(Wert), na.rm = T) / n()) * 100) -> screenName_emo_score
+
+names(screenName_emo_score)
+
+```
+
+Print and plot the emo scores.
+
+```{r kable-emo-scores-screenName}
+screenName_emo_score %>% 
+  arrange(-emo_abs_score) %>% 
+  slice(1:10) %>% 
+  kable
+```
+
+```{r plot-emo-scores-screenName}
+screenName_emo_score %>% 
+  arrange(-emo_abs_score) %>% 
+  slice(1:25) %>% 
+  ggplot +
+  aes(x = reorder(screenName, -emo_score), y = emo_score) +
+  geom_line(group = 1) +
+  geom_point(aes(color = emo_score)) +
+  coord_flip() +
+  scale_color_gradient(high = "red", low = "green") 
+```
+
+
+
+
+# What types of words are used and how often (Part of Speech (POS) tags)
+
+## Marginal
+
+```{r}
+tweet_tokens_sentis %>% 
+  count(POS)
+```
+
+## Per party
+
+Which party uses how many of what word types?
+    
+```{r}
+tweet_tokens_sentis %>% 
+  group_by(party, POS) %>% 
+  summarise(n = n()) %>% 
+  ggplot +
+  aes(x = POS, y = n) +
+  geom_col() +
+  facet_wrap(~party, scales = "free")
+```
+
+
+Ratio of adj to adverbs.
+
+```{r}
+tweet_tokens_sentis %>% 
+  group_by(party, POS) %>% 
+  summarise(n = n()) %>% 
+  filter(POS %in% c("adv", "adjx")) %>% 
+  spread(POS, n) %>% 
+  mutate(adj_adv = adjx / adv) %>% 
+  ggplot +
+  aes(x = reorder(party, -adj_adv), y = adj_adv) +
+  geom_col()
+```
+
+
+```{r}
+tweet_tokens_sentis %>% 
+  group_by(party, POS) %>% 
+  summarise(n = n()) %>% 
+  filter(POS %in% c("adv", "adjx")) %>% 
+  spread(POS, n) %>% 
+  mutate(adj_adv = adjx / adv) %>% 
+  ggplot +
+  aes(x = reorder(party, -adj_adv), y = adj_adv) +
+  geom_boxplot()
+```
+
+
+```{r}
+screenName_POS_n %>% 
+  filter(POS %in% c("adv", "adjx")) %>% 
+  spread(POS, n) %>% 
+  mutate(adj_adv = adjx / adv) %>% 
+  ggplot +
+  aes(x = reorder(party, -adj_adv), y = adj_adv) +
+  geom_boxplot(aes(color = party, fill = party))
+```
+
+
+
+
+
+## Per screenName (person)
+
+```{r}
+tweet_tokens_sentis %>% 
+  group_by(party, screenName, POS) %>% 
+  summarise(n = n()) %>% 
+  ungroup -> screenName_POS_n
+
+glimpse(screenName_POS_n)
+```
+
+
+```{r}
+screenName_POS_n %>% 
+  filter(POS %in% c("adv", "adjx")) %>% 
+  spread(POS, n) %>% 
+  mutate(adj_adv = adjx / adv) %>% 
+  filter(!is.na(adj_adv)) %>% 
+  arrange(-adj_adv) %>% 
+  mutate(extreme = case_when(
+    row_number() %in% 1:10 ~ "first",
+    row_number() %in% c((n()-10):n()) ~ "last",
+    TRUE ~ "in_between"
+  )) %>% 
+  filter(extreme %in% c("first", "last")) %>% 
+ggplot +
+  aes(x = reorder(screenName, -adj_adv), y = adj_adv) +
+  geom_col(aes(color = party, fill = party)) +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  facet_wrap(~extreme) +
+  labs(title = "Adjektiv-Adverb-Quote",
+       caption = "Die SPD führt bei der minimalen und maximalen Adjektiv-Adverb-Quote")
+  
+```
+
 
 
 # Check
@@ -254,10 +476,11 @@ tweet_tokens %>%
 Seems to be ok.
 
 
-## Weighted Sentiment analysis (raw values, no z-scores)
+
+# Weighted Sentiment analysis (raw values, no z-scores)
 
 
-```{r}
+```{r plot-weighted-emo-scores}
 party_emo_weighted %>% 
  # mutate(emo_score = `*`(emo_score, 1)) %>% 
   gather(key = emo_type, emo_value, -party) %>%
@@ -271,5 +494,18 @@ party_emo_weighted %>%
        x =  "Partei",
        caption = "CSU und AfD stechen als Gegensätze hervor:\nDie CSU ist wenig emotional, aber wenn, dann positiv.\nBei der AfD ist es umgekehrt.",
       y = "Emotionalität")
+```
+
+
+
+
+# Save data
+
+```{r}
+save(tweet_tokens_sentis, 
+     file = "../data_polit_twitter/tweet_tokens_sentis.Rdata")
+
+save(screenName_POS_n,
+     file = "../data_polit_twitter/screenName_POS_n.Rdata")
 ```
 

@@ -487,6 +487,8 @@ stopwords_de_ses %>%
 
 ```
 
+Now unnest the tokens (1-grams):
+
 ```{r unnest-tokens}
 tweets_df %>% 
   select(party, text, screenName) %>% 
@@ -552,28 +554,6 @@ wordcloud(words = tweets_word_count$token,
 
 ## Most frequent terms per party
 
-
-```{r}
-
-
-tweets_df %>% 
-  select(party, text) %>% 
-  unnest_tokens(output = token, input = text) %>% 
-  dplyr::filter(str_detect(token, "[a-z]")) %>% 
-  anti_join(stopwords_de, by = "token") -> tweet_tokens
-
-
-stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
-
-stopwords_de_ses %>% 
-  rename(token = stopword) -> stopwords_de_ses
-
-tweet_tokens %>% 
-  anti_join(stopwords_de_ses, by = "token") -> tweet_tokens
-
-
-
-```
 
 ```{r}
 
@@ -767,8 +747,31 @@ tweets_per_party_word_count_stemmed2 %>%
 
 ```
 
-# Compare usage of word types
 
+
+# Word lengths
+
+```{r}
+tweet_tokens %>% 
+  mutate(word_length = str_length(token)) %>% 
+  group_by(screenName) %>% 
+  ggplot +
+  aes(x = word_length) +
+  geom_histogram() +
+  xlim(0,30) +
+  labs(title = "Mittlere Wortlänge in Tweets der Politiker")
+ 
+```
+
+```{r}
+tweet_tokens %>% 
+  mutate(word_length = str_length(token)) %>% 
+  group_by(screenName) %>% 
+  summarise(word_length_avg = mean(word_length, na.rm = T),
+            word_length_md = median(word_length, na.rm = T)) -> screenName_word_lengths
+
+
+```
 
 
 
@@ -821,8 +824,10 @@ outer(1:nrow(mat), 1:ncol(mat), FUN = function(i,j) setdiff(top_100s$token[top_1
 
 save(tweet_tokens, file = "../data_polit_twitter/tweet_tokens.Rdata")
 
-
 save(tweets_token_including_stopwords, file = "../data_polit_twitter/tweets_token_including_stopwords.Rdata")
+
+save(screenName_word_lengths,
+     file = "../data_polit_twitter/screenName_word_lengths.Rdata")
 
 ```
 

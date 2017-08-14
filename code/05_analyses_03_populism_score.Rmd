@@ -79,10 +79,7 @@ tweets_df %>%
 ```
 
 
-Join with polits df
-
-
-Not sure if this piece is needed.
+Join with polits df. Not sure if this piece is needed.
 
 ```{r eval = FALSE}
 populism_scores %>% 
@@ -122,7 +119,61 @@ glimpse(screenName_POS_n)
 screenName_POS_n %>% 
   select(-party) %>% 
   full_join(populism_scores, by = "screenName") -> populism_scores
+
 ```
+
+
+## Add avg number of words
+
+
+```{r}
+glimpse(screenName_word_lengths)
+
+
+populism_scores %>% 
+  left_join(screenName_word_lengths, by = "screenName") -> populism_scores
+
+```
+
+
+## Add relative number of semicolons
+
+```{r}
+tweets_df %>% 
+  select(party, text, screenName) %>% 
+  unnest_tokens(output = token, input = text) %>%  
+  dplyr::filter(str_detect(token, ";")) %>% 
+  select(-party) -> screenName_semicolon
+```
+
+I just leave the absolute number of semicolons, because only 1 of 200 accounts used semicolons at all.
+
+```{r}
+populism_scores %>% 
+  left_join(screenName_semicolon, by = "screenName") -> populism_scores
+
+glimpse(populism_scores)
+
+```
+
+
+# Relative number of words in CAPITAL LETTERS
+
+
+```{r}
+names(tweets_df)
+
+tweets_df %>% 
+  select(party, text, screenName) %>% 
+  mutate(token = str_replace(text, " ", ""),
+         token = str_detect(token, "^[[:upper:]]+$")) %>% 
+  select(-party, text) -> dummy
+
+dummy %>% 
+  filter(token)
+```
+
+There were basically no words in uppercase, except one tweet by MarcusFaber.
 
 
 # Save data

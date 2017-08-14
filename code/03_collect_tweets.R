@@ -79,9 +79,19 @@ tweets_df %>%
   filter(!is_duplicated) -> tweets_df
 
 
+# Ensure UTF8
+
+
+Encoding(tweets_df$text) <- "UTF8"
+tweets_df$text <- stringi::stri_enc_toutf8(tweets_df$text)
+tweets_df$screenName <- stringi::stri_enc_toutf8(tweets_df$screenName)
+tweets_df$party <- stringi::stri_enc_toutf8(tweets_df$party)
+
+
 
 # save output
 save(tweets_df, file = paste0("../data_polit_twitter/tweets_df_", lubridate::now(),".Rdata"))
+
 
 
 

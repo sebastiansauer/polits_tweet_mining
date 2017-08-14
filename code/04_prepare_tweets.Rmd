@@ -159,12 +159,6 @@ polits_df %>%
 ```
 
 
-# Ensure UTF8
-
-```{r}
-Encoding(tweets_df$text) <- "UTF8"
-```
-
 
 
 

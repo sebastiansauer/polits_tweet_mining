@@ -1,8 +1,12 @@
 ---
-title: "Wie populistisch tweeten unsere Politiker (im Vergleich zu Donal Trump?"
-subtitle: "Eine Analyse"
-author: "Sebastian Sauer"
+title: |
+  |  Wie populistisch tweeten unsere Politiker 
+  |  (im Vergleich zu Donal Trump)?
+subtitle: "Twitter-Text-Mining"
+author: "Sebastian Sauer, FOM Hochschule, Nürnberg"
 date: "2017-09-heute"
+linkcolor: blue
+urlcolor: blue
 output:
   beamer_presentation:
     fig_caption: no
@@ -17,11 +21,11 @@ set.seed(1014)
 options(digits = 3)
 
 knitr::opts_chunk$set(
-  comment = "#>",
   collapse = TRUE,
   message = FALSE,
   warning = FALSE,
   cache = TRUE,
+  echo = FALSE,
   out.width = "70%",
   fig.align = 'center',
   fig.width = 6,
@@ -29,6 +33,13 @@ knitr::opts_chunk$set(
   fig.show = "hold",
   size = "tiny"
 )
+```
+
+
+```{r libs}
+library(tidyverse)
+library(knitr)
+library(pander)
 ```
 
 
@@ -85,36 +96,49 @@ knitr::opts_chunk$set(
 
 ## Populismus-Score (PopScore; $\pi$)
 
-- Ungewichteter Mittelwert von z-Werten
+- Ungewichteter Median von z-Werten
 
-- Indikatoren
-    1. Anteil von Ausrufezeichen `!`
-    2. Anteil von Fragezeichen `?` (Komplement)
-    3. Emotionalität^[http://wortschatz.uni-leipzig.de/de/download] der Wörter
-    4. Quote von Adverben zu Adjektiven
-    5. Mittlere Wortlänge
-    6. Anteil der Tweets mit Semikolons `;`
-    7. Anteil der Wörter in GROSSBUCHSTABEN
+```{r echo = FALSE}
+pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
+                 neg_words_ratio_z = "Verhältnis negativer/positiver Wörter",
+                 neg_prop_z = "Anteil negativer Wörter",
+                 emo_words_prop_z =  "Anteil emotionaler Wörter",
+                 emo_score_neg_z =  "Wert an negativer Emotion",
+                 emo_abs_score_z = "Wert an Emotionalität",
+                 cap_prop_z = "Anteil GROSSBUCHSTABEN",
+                 adj_adv_quote_z =  "Verhältnis Adverben zu Adjektiven")
+
+pop_vars_de %>% as.character
+```
+
     
 
-## Hypothesen
+## Hypothese
 
-- $\forall i  \neq REP: \pi_{REP} > \pi_i, i \in P$
-
-- $\forall i  \neq AFD, REP: \pi_{AFD} > \pi_i, i \in P$
+- Populismus-Reihenfolge: Trump > AfD > *sonstige*
 
 
 # Daten
 
 ## Stichprobe - Überblick
 
-- $n \approx 400k$ Tweets deutscher Politiker
-- $m \approx 32k$ Tweets von Donald Trump
+- $d \approx 400k$ Tweets deutscher Politiker
+- $t \approx 32k$ Tweets von Donald Trump
+- $w \approx 6.3 Mio$ Wörter
 - $k = 200$ Twitter Accounts
-- $p = 8$ politische Partein; P = {AfD, CDU, CSU, FDP, Grüne, Linke, SPD, (fraktionslos), REP}
+- $p = 8$ politische Partein; P = {AfD, CDU, CSU, FDP, Grüne, Linke, SPD, (fraktionslos), Trump/GOP}
+- Die Daten wurden im August 2017 gesammelt.
 
 
-## Diagramm timeline tweets
+## Accounts^[Stand: August 2017]
+
+- [Liste](https://twitter.com/dw_politics/lists/german-politicians/members) "German Politicians" der [Deutschen Welle](http://www.dw.com/de/unternehmen/profil/s-30626)
+- Twitter-Accounts des [Bundesvorstands der AfD](https://www.afd.de/partei/bundesvorstand/)
+- Twitter-Accounts des [Präsidiuums der FDP](https://www.fdp.de/seite/praesidium)
+- Markus Söder
+
+
+## Tweets timeline
 
 ![](../img/p_tweets_timeline2.pdf)
 
@@ -128,13 +152,92 @@ knitr::opts_chunk$set(
 ![](../img/p_tweets_per_party.pdf)
 
 
-## Img Tweets pro Account pro Tag
+## Trump twittert wie verrückt 
+Tweets pro Accounts pro Tag
 
+![](../img/p_tweets_day_party.pdf)
+
+
+
+## Grüne: Am meisten Gezwitscher; CSU: am wenigsten
+
+![](../img/p_tweets_day_party_md_no_trump.pdf)
 
 
 # Ergebnisse: Teilweise bestätigend
 
-## 
+## Trumps Populismus-Score ist am größten 
+
+The greatest, really, everybody knows it
+
+![](../img/p_party_pop_scores_2.pdf)
+
+## Ohne Trump: Union/SPD am wenigsten populistisch
+
+![](../img/p_party_pop_scores_wo_trump.pdf)
+
+## AfD und Linke ähneln sich
+
+... CSU, CDU und SPD auch
+
+![](../img/p_party_pop_scores_details_no_trump.pdf)
+
+## "Top-10 der Populisten"^[cum grano salis] - zumeist von Der Linken
+
+![](../img/p_pop_screenName.pdf)
+
+## Nahaufnahme des "Top-1-Populisten"^[cum grano salis]
+
+![](../img/p_most_pop_screenName.pdf)
+
+## Beispiel-Tweets für "Top-1-Populisten"
+
+```{r results = "asis"}
+load("../../data_polit_twitter/top_1_pop_account_sample_tweets.Rdata")
+
+top_1_pop_account_sample_tweets %>% 
+  as_tibble %>% 
+  rename(Tweet = value) %>% 
+  mutate(Nr = 1:n()) %>% 
+  select(Nr, Tweet) %>% 
+  mutate(Tweet = paste0("\'",Tweet, "\\'")) %>% 
+  slice(1:4) %>% 
+  pandoc.table(split.cells = 70)
+```
+
+
+
+# Diskussion: Erste Schritte zur Psychoinformatik
+
+
+## Stärken
+
+- Neue, bisher wenig genutzte Methode
+- Großer Datensatz (~6 Mio Wörter)
+- Hohe Objektivität (in Teilen)
+- Hohe Reproduzierbarkeit
+- Wichtiges Thema
+
+
+## Schwächen
+
+- Indikatoren sind subjektiv gewählt
+- Weitere Analysen möglich/sinnvoll
+- Datenprojektmanagement optimierbar
+
+# Danke
+
+## Kontakt
+
+**Sebastian Sauer**  
+sebastian.sauer@fom.de
+
+twitter: sauer_sebastian, psy_pol  
+blog: https://sebastiansauer.github.io  
+
+Folien: osf  
+Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://github.com/sebastiansauer/polits_tweet_mining> 
+
 
 
 ## Literatur

@@ -135,6 +135,14 @@ p_accounts_per_party
 ggsave(p_accounts_per_party, file = "img/p_accounts_per_party.pdf")
 ```
 
+### Closer look to 'fraktionslos'
+
+```{r}
+tweets_df %>% 
+  filter(party == "fraktionslos") %>% 
+  group_by(screenName) %>% 
+  summarise(n = n())
+```
 
 
 ## How many tweets per party
@@ -339,30 +347,30 @@ tweets_df %>%
 
 # Daily tweets per party
 
-
+## Mean
 ```{r}
 
 
 polits_df %>% 
   group_by(party) %>% 
   filter(n > 1) %>% 
-  summarise(tweets_avg = mean(daily_tweets_n)) %>% 
+  summarise(tweets_m = mean(daily_tweets_n)) %>% 
   na.omit %>% 
   ggplot +
-  aes(x = reorder(party, -tweets_avg), y = tweets_avg) +
+  aes(x = reorder(party, tweets_m), y = tweets_m) +
   geom_col(aes(fill = party)) +
   labs(x = "Partei",
        y = "Mittlere Anzahl an Tweets pro Tag") +
-  scale_fill_manual(values = party_pal) -> p_tweets_day_party
+  scale_fill_manual(values = party_pal) +
+  coord_flip() -> p_tweets_day_party_mean
 
-p_tweets_day_party
-# xxx
-ggsave(p_tweets_day_party, file = "img/p_tweets_day_party.pdf")
+p_tweets_day_party_mean
+
+ggsave(p_tweets_day_party, file = "img/p_tweets_day_party_mean.pdf")
 ```
 
 
-Closer look to AFD.
-
+## Median 
 ```{r}
 
 polits_df %>% 
@@ -370,12 +378,46 @@ polits_df %>%
   summarise(tweets_md = median(daily_tweets_n, na.rm = T)) %>% 
   filter(!is.na(party)) %>% 
   ggplot() +
-  aes(x = reorder(party, -tweets_md), y = tweets_md) +
+  aes(x = reorder(party, tweets_md), y = tweets_md) +
   geom_col(aes(fill = party)) +
   labs(x = "Partei",
        y = "Mediane Anzahl an Tweets pro Tag") +
-  scale_fill_manual(values = party_pal) 
+  scale_fill_manual(values = party_pal) +
+  coord_flip() -> p_tweets_day_party_md
+
+p_tweets_day_party_md
+
+ggsave(p_tweets_day_party_md,
+       file = "img/p_tweets_day_party_md.pdf")
+
 ```
+
+
+## Without Trump, without 'fraktionslos'
+
+
+```{r}
+
+polits_df %>% 
+  filter(!party %in% c("trump", "fraktionslos")) %>% 
+  group_by(party) %>% 
+  summarise(tweets_md = median(daily_tweets_n, na.rm = T)) %>% 
+  filter(!is.na(party)) %>% 
+  ggplot() +
+  aes(x = reorder(party, tweets_md), y = tweets_md) +
+  geom_col(aes(fill = party)) +
+  labs(x = "Partei",
+       y = "Mediane Anzahl an Tweets pro Tag") +
+  scale_fill_manual(values = party_pal) +
+  coord_flip() -> p_tweets_day_party_md_no_trump
+
+p_tweets_day_party_md_no_trump
+
+ggsave(p_tweets_day_party_md_no_trump,
+       file = "img/p_tweets_day_party_md_no_trump.pdf")
+
+```
+
 
 
 # daily tweets per person

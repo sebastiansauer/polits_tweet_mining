@@ -167,6 +167,28 @@ polits_df %>%
 ```
 
 
+## Vector of pop scores
+
+```{r}
+pop_vars <- c("word_length_md_comp", 
+              "emo_score_neg", 
+              "emo_abs_score",
+              "neg_words_ratio", 
+              "cap_prop", 
+              "neg_prop", 
+              "adj_adv_quote",
+              "emo_words_prop")
+
+
+pop_vars_z <- sapply(pop_vars, function(col) paste0(col, "_z")) %>% as.character
+
+
+length(pop_vars)
+
+```
+
+
+
 ## Turn all indicators in right direction
 
 Compute complements `comp` to change direction
@@ -191,14 +213,7 @@ polits_df %>%
 
 ```{r}
 polits_df %>% 
-  mutate_at(c("word_length_md_comp", 
-              "emo_score_neg", 
-              "emo_abs_score",
-              "neg_words_ratio", 
-              "cap_prop", 
-              "neg_prop", 
-              "adj_adv_quote",
-              "emo_words_prop"), 
+  mutate_at(pop_vars, 
             funs(z = as.vector(scale(.)))) -> polits_df
 ```
 
@@ -302,16 +317,21 @@ party_pop_scores %>% glimpse
 
 
 ## Plot again, different score computation (totals)
+
 ```{r plot-party-pop-scores}
 party_pop_scores %>% 
   ggplot(aes(x = reorder(party, pop_score_md), y = pop_score_md, fill = party)) +
   geom_col() +
   scale_fill_manual(values = party_pal) +
+  labs(x = "Partei",
+       fill = "Partei",
+       y = "Populismuswert",
+       caption = "dargestellt sind Mediane aggregiert über Tweets und Accounts") +
   coord_flip() -> p_party_pop_scores_2
 
 p_party_pop_scores_2
 
-ggsave(p_party_pop_scores_2, file = "img/p_party_pop_scores.pdf")
+ggsave(p_party_pop_scores_2, file = "img/p_party_pop_scores_2.pdf")
 ```
 
 For comparision, same data, different computation
@@ -320,7 +340,54 @@ For comparision, same data, different computation
 p_party_pop_scores
 ```
 
+## Pop scores without Trump (per party)
+
+```{r plot-party-pop-scores-without-trump}
+party_pop_scores %>% 
+  filter(!party %in% c("trump")) %>% 
+  ggplot(aes(x = reorder(party, pop_score_md), y = pop_score_md, fill = party)) +
+  geom_col() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Partei",
+       fill = "Partei",
+       y = "Populismuswert",
+       caption = "dargestellt sind Mediane aggregiert über Tweets und Accounts") +
+  coord_flip() -> p_party_pop_scores_wo_trump
+
+p_party_pop_scores_wo_trump
+
+ggsave(p_party_pop_scores_wo_trump, file = "img/p_party_pop_scores_wo_trump.pdf")
+```
+
+
+## String of pop vars in German
+
+```{r}
+pop_vars_de_median <- c(word_length_md_comp_z_median = "Wortkürze",
+                 neg_words_ratio_z_median = "Verhältnis negativer/positiver Wörter",
+                 neg_prop_z_median = "Anteil negativer Wörter",
+                 emo_words_prop_z_median =  "Anteil emotionaler Wörter",
+                 emo_score_neg_z_median =  "Wert an negativer Emotion",
+                 emo_abs_score_z_median = "Wert an Emotionalität",
+                 cap_prop_z_median = "Anteil GROSSBUCHSTABEN",
+                 adj_adv_quote_z_median =  "Verhältnis Adverben zu Adjektiven")
+
+pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
+                 neg_words_ratio_z = "Verhältnis negativer/positiver Wörter",
+                 neg_prop_z = "Anteil negativer Wörter",
+                 emo_words_prop_z =  "Anteil emotionaler Wörter",
+                 emo_score_neg_z =  "Wert an negativer Emotion",
+                 emo_abs_score_z = "Wert an Emotionalität",
+                 cap_prop_z = "Anteil GROSSBUCHSTABEN",
+                 adj_adv_quote_z =  "Verhältnis Adverben zu Adjektiven")
+
+
+```
+
+
+
 ## Plot populism indicators per party
+
 
 ```{r}
 party_pop_scores %>% 
@@ -330,14 +397,109 @@ party_pop_scores %>%
   aes(x = Indikator, y = z_Wert, fill = party) +
   geom_col() +
   facet_wrap(~party) +
-  scale_fill_manual(values = party_pal) +
+  scale_fill_manual(values = party_pal) + 
+  labs(caption = 
+         "dargestellt sind Mediane über alle Tweets aller Politiker") +
+  scale_x_discrete(labels = pop_vars_de_median) +
   coord_flip() -> p_party_pop_scores_details
 
 p_party_pop_scores_details
 
 ggsave(p_party_pop_scores_details, 
-       file = "img/p_party_pop_scores_details.pdf")
+       file = "img/p_party_pop_scores_details.pdf", 
+       width = 7,
+       height = 5)
 
+```
+
+
+
+## Plot populism indicators per party without Trump
+
+
+```{r}
+party_pop_scores %>% 
+  select(contains("median"), party) %>% 
+  filter(party != "trump") %>% 
+  gather(key = Indikator, value = z_Wert, -party) %>% 
+  ggplot +
+  aes(x = Indikator, y = z_Wert, fill = party) +
+  geom_col() +
+  facet_wrap(~party) +
+  scale_fill_manual(values = party_pal) + 
+  labs(caption = 
+         "dargestellt sind Mediane über alle Tweets aller Politiker") +
+  scale_x_discrete(labels = pop_vars_de_median) +
+  coord_flip() -> p_party_pop_scores_details_no_trump
+
+p_party_pop_scores_details_no_trump
+
+ggsave(p_party_pop_scores_details_no_trump, 
+       file = "img/p_party_pop_scores_details_no_trump.pdf", 
+       width = 7,
+       height = 5)
+
+```
+
+
+
+# Plot most populist politicians
+
+```{r}
+polits_df %>% 
+  filter(!is.na(party)) %>% 
+  top_n(10, pop_z_md) %>% 
+  ggplot +
+  aes(x = reorder(screenName, pop_z_md), y = pop_z_md, fill = party) %>% 
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Name",
+       y = "Populismuswert",
+       fill = "Partei") -> p_pop_screenName
+
+
+p_pop_screenName
+
+
+ggsave(p_pop_screenName,
+       file = "img/p_pop_screenName.pdf")
+
+```
+
+### Closer look to Karl_Lauterbach
+
+
+```{r}
+polits_df %>% 
+  filter(screenName == "Karl_Lauterbach") %>% 
+  select(pop_vars_z) %>% 
+  gather(Indikator, Wert) %>% 
+  ggplot +
+  aes(x = reorder(Indikator, Wert), y = Wert) +
+  geom_col() +
+  coord_flip() +
+  scale_x_discrete(labels = pop_vars_de) +
+  labs(x = "Indikator", y = "Z-Wert") -> p_most_pop_screenName
+
+
+p_most_pop_screenName
+
+ggsave(p_most_pop_screenName,
+       file = "img/p_most_pop_screenName.pdf")
+```
+
+
+## Some tweets
+
+```{r}
+tweets_df %>% 
+  filter(screenName == "Karl_Lauterbach") %>% 
+  sample_n(10) %>% 
+  pull(text) -> top_1_pop_account_sample_tweets
+
+save(top_1_pop_account_sample_tweets, 
+     file = "../data_polit_twitter/top_1_pop_account_sample_tweets.Rdata")
 ```
 
 

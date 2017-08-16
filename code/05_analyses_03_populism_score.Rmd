@@ -46,6 +46,15 @@ load("../data_polit_twitter/tweet_tokens.Rdata")
 ```
 
 
+Run this if some columns are matrices:
+
+```{r}
+
+polits_df %>% 
+  mutate_all(funs(c)) -> polits_df
+
+```
+
 
 # Aspects of the populism measure
 
@@ -128,32 +137,215 @@ tweets_df %>%
   mutate(cap_count = str_count(text,  "[[:upper:]]{4,}")) %>% 
   select(-party) %>% 
   group_by(screenName) %>% 
-  summarise(cap_count = sum(cap_count)) %>% 
+  summarise(cap_count = sum(cap_count, na.rm = T)) %>% 
   full_join(polits_df, by = "screenName") %>%  
-  mutate(cap_prop = cap_count / word_count) -> polits_df
+  mutate(cap_prop = cap_count / word_count) %>% 
+  ungroup -> polits_df
 
 
 ```
 
+
+
+
+
+# Compute z-scores, and mean/md z-score
+
+
+## Compute more indicators
+
+```{r comp-indicators}
+polits_df %>% 
+  mutate(cap_prop = cap_count / word_count,
+         neg_prop = neg_words_n / word_count,
+         pos_prop = pos_words_n / word_count,
+         adj_adv_quote = adjx_n / adv_n) -> polits_df
+
+
+# polits_df %>% ungroup -> polits_df
+
+```
+
+
+## Turn all indicators in right direction
+
+Compute complements `comp` to change direction
+
+```{r check-sign-of-pop-indicators}
+
+polits_df %>% 
+  mutate(semicolon_n = NULL,  # remove this variable, nearly all missing
+         word_length_md_comp = 1 / word_length_md,
+         emo_score_neg = -emo_score,  # flip signs
+         emo_abs_score = emo_abs_score,
+         neg_prop = neg_prop,
+         cap_prop = cap_prop,
+         adj_adv_quote = adj_adv_quote,
+         emo_words_prop = neg_prop + pos_prop) -> polits_df
+         
+```
+
+
+
+## Compute z scores of pop indicators
+
+```{r}
+polits_df %>% 
+  mutate_at(c("word_length_md_comp", 
+              "emo_score_neg", 
+              "emo_abs_score",
+              "neg_words_ratio", 
+              "cap_prop", 
+              "neg_prop", 
+              "adj_adv_quote",
+              "emo_words_prop"), 
+            funs(z = as.vector(scale(.)))) -> polits_df
+```
+
+
+
+## Compute summary populism score
+
+
+```{r}
+polits_df %>% 
+  rowwise() %>% 
+  mutate(pop_z_md = median(c(word_length_md_comp_z, 
+                             emo_score_neg_z, 
+                             emo_abs_score_z,
+                             neg_words_ratio_z, 
+                             cap_prop_z, 
+                             neg_prop_z, 
+                             adj_adv_quote_z,
+                             emo_words_prop_z), na.rm = T)) %>% 
+  ungroup -> polits_df
+```
+
+
+
+
+## Plot pop scores by party, total score
+
+```{r}
+polits_df %>% 
+  group_by(party) %>% 
+  filter( party != "fraktionslos") %>% 
+  summarise(pop_z_md = median(pop_z_md)) %>% 
+  ggplot +
+  aes(x = reorder(party, pop_z_md), y = pop_z_md, fill = party) +
+  geom_col() +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Populismuswert",
+       fill = "Partei",
+       caption = "Median über alle Populismus-Indikatoren") +
+  scale_fill_manual(values = party_pal) -> p_party_pop_scores
+
+p_party_pop_scores
+
+ggsave(p_party_pop_scores, file = "img/party_pop_scores.pdf")
+
+
+```
+
+
+## Compute pop scores by party, details
+
+```{r comp-party-pop-scores}
+polits_df %>% 
+  group_by(party) %>% 
+  filter(party != "fraktionslos") %>% 
+  summarise_at(vars(word_length_md_comp_z, 
+                      emo_score_neg_z, 
+                      emo_abs_score_z,
+                      neg_words_ratio_z, 
+                      cap_prop_z, 
+                      neg_prop_z, 
+                      adj_adv_quote_z,
+                      emo_words_prop_z), 
+               funs(mean, median), na.rm = T) %>% 
+  mutate_all(funs(c)) %>% 
+  ungroup -> party_pop_scores
+  
+```
+
+
+## Pop row summaries (mean/median)
+
+```{r comp-pop-scores-row-summaries}
+
+# compute row summaries (total pop score)
+
+party_pop_scores %>%   
+  rowwise() %>% 
+  mutate(pop_score_md = median(c(word_length_md_comp_z_median, 
+                             emo_score_neg_z_median, 
+                             emo_abs_score_z_median,
+                             neg_words_ratio_z_median, 
+                             cap_prop_z_median, 
+                             neg_prop_z_median, 
+                             adj_adv_quote_z_median,
+                             emo_words_prop_z_median), na.rm = T),
+        pop_score_mean = mean(c(word_length_md_comp_z_median, 
+                             emo_score_neg_z_median, 
+                             emo_abs_score_z_median,
+                             neg_words_ratio_z_median, 
+                             cap_prop_z_median, 
+                             neg_prop_z_median, 
+                             adj_adv_quote_z_median,
+                             emo_words_prop_z_median), na.rm = T)) %>% 
+    ungroup -> party_pop_scores
+
+party_pop_scores %>% glimpse
+
+```
+
+
+## Plot again, different score computation (totals)
+```{r plot-party-pop-scores}
+party_pop_scores %>% 
+  ggplot(aes(x = reorder(party, pop_score_md), y = pop_score_md, fill = party)) +
+  geom_col() +
+  scale_fill_manual(values = party_pal) +
+  coord_flip() -> p_party_pop_scores_2
+
+p_party_pop_scores_2
+
+ggsave(p_party_pop_scores_2, file = "img/p_party_pop_scores.pdf")
+```
+
+For comparision, same data, different computation
+
+```{r}
+p_party_pop_scores
+```
+
+## Plot populism indicators per party
+
+```{r}
+party_pop_scores %>% 
+  select(contains("median"), party) %>% 
+  gather(key = Indikator, value = z_Wert, -party) %>% 
+  ggplot +
+  aes(x = Indikator, y = z_Wert, fill = party) +
+  geom_col() +
+  facet_wrap(~party) +
+  scale_fill_manual(values = party_pal) +
+  coord_flip() -> p_party_pop_scores_details
+
+p_party_pop_scores_details
+
+ggsave(p_party_pop_scores_details, 
+       file = "img/p_party_pop_scores_details.pdf")
+
+```
 
 
 # Save data
 
 ```{r}
-save(populism_scores, file = "../data_polit_twitter/populism_scores.Rdata")
+# save(populism_scores, file = "../data_polit_twitter/populism_scores.Rdata")
 save(polits_df, file = "../data_polit_twitter/polits_df.Rdata")
-```
-
-
-
-# Print populism scores per party
-
-
-## Compute party pop scores
-```{r}
-polits_df %>% 
-  group_by(party) %>% 
-    summarise(exclamation_n = median())
-  
+save(party_pop_scores, file = "../data_polit_twitter/party_pop_scores.Rdata")
 ```
 

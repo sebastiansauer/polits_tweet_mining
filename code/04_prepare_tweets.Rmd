@@ -142,6 +142,13 @@ tweets_df %>%
 ```
 
 
+## How many words in total?
+
+```{r}
+tweets_df$text %>% str_count %>% sum
+```
+
+Approx ~50 Mio words
 
 
 Proportion of tweets left (non-duplicates): `r nrow(tweets_df)/nrow(tweets_polits)`.
@@ -274,7 +281,7 @@ party_pal <- c(afd = "dodgerblue3",
 # Save data
 
 ```{r}
-write_csv(polits_df, path = "../data_polit_twitter/polits_df.csv")
+save(polits_df, file = "../data_polit_twitter/polits_df.Rdata")
 save(tweets_df, file = "../data_polit_twitter/tweets_df.Rdata")
 save(party_pal, file = "data/party_pal.Rdata")
 ```

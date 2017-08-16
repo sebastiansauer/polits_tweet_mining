@@ -324,6 +324,19 @@ tweets_df %>%
   
 ```
 
+
+
+## Compute words per screenName
+
+```{r}
+tweets_df %>% 
+  group_by(screenName) %>% 
+  summarise(word_count = str_count(text) %>% sum) %>% 
+  full_join(polits_df, by = "screenName") -> polits_df
+  
+```
+
+
 # Daily tweets per party
 
 
@@ -580,6 +593,16 @@ tweets_df %>%
 
 ```
 
+Some checks
+
+Trump included?
+```{r}
+tweets_token_including_stopwords %>% 
+  filter(party == "trump")
+```
+
+
+
 `unnest_tokens` performs `str_to_lower` too.
 
 
@@ -587,6 +610,13 @@ tweets_df %>%
 tweets_token_including_stopwords %>% 
   anti_join(stopwords_de_ses, by = "token") %>% 
   anti_join(stopwords_de, by = "token") -> tweet_tokens
+```
+
+
+Trump included?
+```{r}
+tweet_tokens %>% 
+  filter(party == "trump")
 ```
 
 
@@ -640,7 +670,7 @@ wordcloud(words = tweets_word_count$token,
 
 ```{r}
 
-load("../data_polit_twitter/tweet_tokens.Rdata")
+#load("../data_polit_twitter/tweet_tokens.Rdata")
 
 
 tweet_tokens %>% 
@@ -844,7 +874,8 @@ ggsave(plot_tweets_per_party_word_count_stemmed_2,
 
 # Word lengths
 
-```{r}
+## Histogram of word length
+```{r plot-word-distrib}
 tweet_tokens %>% 
   mutate(word_length = str_length(token)) %>% 
   group_by(screenName) %>% 
@@ -856,18 +887,36 @@ tweet_tokens %>%
        y = "Häufigkeit") -> word_distrib
 
 
+word_distrib
+
+
 ggsave(word_distrib,
       file = "img/word_distrib.pdf") 
 
 ```
 
-```{r}
+
+## Comp word lengths
+
+```{r comp-word-lengths}
 tweet_tokens %>% 
   mutate(word_length = str_length(token)) %>% 
   group_by(screenName) %>% 
   summarise(word_length_avg = mean(word_length, na.rm = T),
             word_length_md = median(word_length, na.rm = T)) -> screenName_word_lengths
 
+
+screenName_word_lengths %>% 
+  filter(str_detect(screenName, "real"))
+
+```
+
+
+## Join to polits-df
+
+```{r}
+screenName_word_lengths %>% 
+  left_join(polits_df) -> polits_df
 ```
 
 
@@ -925,6 +974,10 @@ save(tweets_token_including_stopwords, file = "../data_polit_twitter/tweets_toke
 
 save(screenName_word_lengths,
      file = "../data_polit_twitter/screenName_word_lengths.Rdata")
+
+
+save(polits_df, 
+     file = "../data_polit_twitter/polits_df.Rdata")
 
 ```
 

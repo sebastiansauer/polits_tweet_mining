@@ -42,6 +42,7 @@ And the data.
 ```{r load-data}
 load("../data_polit_twitter/tweets_df.Rdata")
 polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
+load("../data_polit_twitter/tweet_tokens.Rdata")
 ```
 
 
@@ -85,35 +86,11 @@ tweets_df %>%
 ```{r eval = FALSE}
 populism_scores %>% 
   select(-party)  %>%  # prevent duplicate column
-  left_join(polits_df, by = "screenName") -> polits_df
+  left_join(polits_df, by = "screenName") %>% 
+  mutate(exclamation_prop = exclamation_marks_abs / word_count)-> dummy
 ```
 
 
-# Join emotionality scores to polits_df
-
-## Add type of word usage (POS tags)
-
-```{r}
-glimpse(screenName_POS_n)
-
-screenName_POS_n %>% 
-  select(-party) %>% 
-  full_join(populism_scores, by = "screenName") -> populism_scores
-
-```
-
-
-## Add avg number of words
-
-
-```{r}
-glimpse(screenName_word_lengths)
-
-
-populism_scores %>% 
-  left_join(screenName_word_lengths, by = "screenName") -> populism_scores
-
-```
 
 
 ## Add relative number of semicolons
@@ -123,21 +100,18 @@ tweets_df %>%
   select(party, text, screenName) %>% 
   unnest_tokens(output = token, input = text) %>%  
   dplyr::filter(str_detect(token, ";")) %>% 
-  select(-party) -> screenName_semicolon
+  select(-party) %>% 
+  group_by(screenName) %>% 
+  mutate(semicolon_n = n()) %>% 
+  select(-token) %>% 
+  full_join(polits_df) -> polits_df
 ```
 
-I just leave the absolute number of semicolons, because only 1 of 200 accounts used semicolons at all.
-
-```{r}
-populism_scores %>% 
-  left_join(screenName_semicolon, by = "screenName") -> populism_scores
-
-glimpse(populism_scores)
-
-```
+I just leave the absolute number of semicolons, because only 1 account used semicolons at all.
 
 
-# Relative number of words in CAPITAL LETTERS
+# (Relative) number of words in CAPITAL LETTERS
+
 
 
 ```{r}
@@ -145,20 +119,41 @@ names(tweets_df)
 
 tweets_df %>% 
   select(party, text, screenName) %>% 
-  mutate(token = str_replace(text, " ", ""),
-         token = str_detect(token, "^[[:upper:]]+$")) %>% 
-  select(-party, text) -> dummy
+  mutate(text = str_replace(text, "https*://\\S+", ""),  #remove links
+         text = str_replace(text, "#\\S+", ""),  # remove hashtags
+         rext = str_replace(text, "RT", ""),  # remove "RT"
+         text = str_replace(text, "@\\S+", "")) %>%  # remove mentions
+  #mutate(token = str_replace(text, " ", "")) %>% 
+  #filter(str_detect(text, "[[:upper:]]{4,}")) %>% 
+  mutate(cap_count = str_count(text,  "[[:upper:]]{4,}")) %>% 
+  select(-party) %>% 
+  group_by(screenName) %>% 
+  summarise(cap_count = sum(cap_count)) %>% 
+  full_join(polits_df, by = "screenName") %>%  
+  mutate(cap_prop = cap_count / word_count) -> polits_df
 
-dummy %>% 
-  filter(token)
+
 ```
 
-There were basically no words in uppercase, except one tweet by MarcusFaber.
 
 
 # Save data
 
 ```{r}
 save(populism_scores, file = "../data_polit_twitter/populism_scores.Rdata")
+save(polits_df, file = "../data_polit_twitter/polits_df.Rdata")
+```
+
+
+
+# Print populism scores per party
+
+
+## Compute party pop scores
+```{r}
+polits_df %>% 
+  group_by(party) %>% 
+    summarise(exclamation_n = median())
+  
 ```
 

@@ -38,12 +38,28 @@ library(knitr)
 ```
 
 
+## Load the data
+
 And the data.
 ```{r load-data}
 load("../data_polit_twitter/tweets_df.Rdata")
 polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
+load("data/party_pal.Rdata")
+
+data(stopwords_de, package = "lsa")
+stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
+
+
 ```
 
+## Min 2 tweets
+
+Only consider screenNames with more than 1 tweet.
+
+```{r}
+polits_df %>% 
+  filter(n > 1) -> polits_df
+```
 
 
 # Tweet period 
@@ -52,22 +68,15 @@ period from first to most recent tweet
 
 
 ```{r}
+names(tweets_df)
+
 tweets_df %>% 
   group_by(screenName) %>% 
   summarise(first_tweet = min(created),
             recent_tweet = max(created)) %>% 
   mutate(tweet_period = interval(first_tweet, recent_tweet) / ddays(1)) -> polit_periods
 
-
-tweets_df %>% 
-  left_join(polit_periods, by = "screenName") -> dummy
-
-
 ```
-
-
-
-
 
 
 ## How many accounts, how many tweets each?
@@ -88,7 +97,8 @@ tweets_per_screenName %>%
   aes(x = reorder(screenName, n), y = n) +
   geom_col() +
   coord_flip() +
-  geom_text(aes(x = screenName, y = n, label = n))
+  geom_text(aes(x = screenName, y = n, label = n)) +
+  scale_fill_manual(values = party_pal)
 
 
 
@@ -111,9 +121,18 @@ tweets_df %>%
   group_by(party) %>% 
   summarise(accounts_n = n_distinct(screenName)) %>% 
   ungroup %>% 
+  filter(!is.na(party)) %>% 
   ggplot() +
-  aes(x = reorder(party, -accounts_n), y = accounts_n) + 
-  geom_col()
+  aes(x = reorder(party, accounts_n), y = accounts_n) + 
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Anzahl Accounts") +
+  scale_fill_manual(values = party_pal) -> p_accounts_per_party
+
+p_accounts_per_party
+
+ggsave(p_accounts_per_party, file = "img/p_accounts_per_party.pdf")
 ```
 
 
@@ -123,24 +142,46 @@ tweets_df %>%
 ```{r}
 tweets_df %>% 
   count(party) %>% 
+  ungroup %>% 
+  filter(!is.na(party)) %>% 
   ggplot +
-  aes(x = reorder(party, -n), y = n) +
-  geom_col()
+  aes(x = reorder(party, n), y = n) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Anzahl Tweets") +
+  scale_fill_manual(values = party_pal) -> p_tweets_per_party
+
+p_tweets_per_party
+
+
+ggsave(p_tweets_per_party, file = "img/p_tweets_per_party.pdf")
+
 ```
 
 
 ## Tweets per time
 
-```{r fig-tweets-per-time, cache = TRUE}
+```{r fig-tweets-timeline1, cache = TRUE}
 
+# needs some time to plot
 tweets_df %>% 
   filter(!party %in% c(NA, "fraktionslos")) %>% 
   #sample_n(1000) %>% 
   ggplot +
   aes(x = created, y = party) +
-  geom_jitter(aes(color = party)) -> p_tweets_per_time
+  geom_jitter(aes(color = party)) +
+  scale_fill_manual(values = party_pal) -> p_tweets_per_time
 
 p_tweets_per_time
+
+ggsave(p_tweets_per_time, filename = "img/p_tweets_per_time.png")
+```
+
+
+```{r}
+
+tweets_df$party %>% str
 
 tweets_df %>% 
   filter(!party %in% c(NA, "fraktionslos")) %>% 
@@ -148,14 +189,32 @@ tweets_df %>%
   ggplot +
   aes(y = created, x = party) +
   geom_boxplot(aes(fill = party, color = party)) +
-  scale_fill_brewer(palette = "Set1") +
-  scale_color_brewer(palette = "Set1") +
-  coord_flip()
+  scale_fill_manual(values = party_pal) +
+  scale_color_manual(values = party_pal) +
+  coord_flip() -> fig_tweets_timeline1
+
+
+fig_tweets_timeline1
+
+ggsave(fig_tweets_timeline1, filename = "img/fig_tweets_timeline1.pdf")
+
 
 ```
 
 
-#
+```{r}
+tweets_df %>% 
+  filter(!party %in% c(NA, "fraktionslos")) %>% 
+  ggplot +
+  aes(x = party, y = created, fill = party, color = party) +
+  geom_violin() +
+  scale_fill_manual(values = party_pal) +
+  scale_color_manual(values = party_pal) +
+  coord_flip() -> p_tweets_timeline2
+
+ggsave(p_tweets_timeline2, file = "p_tweets_timeline2.pdf")
+```
+
 
 
 ## Check tweets of one account: "ArminLaschet"
@@ -254,19 +313,6 @@ tweets_df %>%
 ```
 
 
-# Tweets per party
-
-
-```{r}
-tweets_df %>% 
-  dplyr::count(party) %>% 
-  ggplot +
-  aes(x = reorder(party, n), y = n) +
-  geom_col() +
-  coord_flip()
-  
-```
-
 
 # Tweets per person
 
@@ -276,6 +322,46 @@ tweets_df %>%
   summarise(n = n()) %>% 
   arrange(-n)
   
+```
+
+# Daily tweets per party
+
+
+```{r}
+
+
+polits_df %>% 
+  group_by(party) %>% 
+  filter(n > 1) %>% 
+  summarise(tweets_avg = mean(daily_tweets_n)) %>% 
+  na.omit %>% 
+  ggplot +
+  aes(x = reorder(party, -tweets_avg), y = tweets_avg) +
+  geom_col(aes(fill = party)) +
+  labs(x = "Partei",
+       y = "Mittlere Anzahl an Tweets pro Tag") +
+  scale_fill_manual(values = party_pal) -> p_tweets_day_party
+
+p_tweets_day_party
+# xxx
+ggsave(p_tweets_day_party, file = "img/p_tweets_day_party.pdf")
+```
+
+
+Closer look to AFD.
+
+```{r}
+
+polits_df %>% 
+  group_by(party) %>% 
+  summarise(tweets_md = median(daily_tweets_n, na.rm = T)) %>% 
+  filter(!is.na(party)) %>% 
+  ggplot() +
+  aes(x = reorder(party, -tweets_md), y = tweets_md) +
+  geom_col(aes(fill = party)) +
+  labs(x = "Partei",
+       y = "Mediane Anzahl an Tweets pro Tag") +
+  scale_fill_manual(values = party_pal) 
 ```
 
 
@@ -454,22 +540,22 @@ OK, so it appears there's an explanation in the differing number of tweets: Ther
 # Daily tweets per party
 
 ```{r}
-
 polits_df %>% 
   group_by(party) %>%
-  summarise(t_pd_m = mean(daily_tweets_n),
+  summarise(t_pd_md = median(daily_tweets_n),
             n_polits = n()) %>% 
-  arrange(-t_pd_m) %>% 
+  arrange(-t_pd_md) %>% 
   ungroup %>% 
   mutate(party = factor(party, party)) %>% 
   ggplot +
-  aes(x = party, y = t_pd_m) +
-  geom_point(aes(size = n_polits)) +
-  labs(title = "Mean daily number of tweets as per party",
-       caption = "size reflects number of Twitter accounts") +
-  scale_radius()
+  aes(x = party, y = t_pd_md) +
+  geom_point(aes(size = n_polits, color = party)) +
+  labs(y = "Mediane Anzahl von Tweets",
+       x = "Partei",
+       caption = "Punktgröße entspricht der Anzahl der Accounts") +
+  scale_radius() +
+  scale_color_manual(values = party_pal)
 ```
-
 
 
 # Most frequent words per party
@@ -477,10 +563,7 @@ polits_df %>%
 
 ## Read stopwords, unnest tokens, compute frequencies
 ```{r read-stopwords}
-data(stopwords_de, package = "lsa")
 stopwords_de <- data_frame(token = stopwords_de)
-
-stopwords_de_ses <- read_csv("data/stopwords_de_ses.csv")
 
 stopwords_de_ses %>% 
   rename(token = stopword) -> stopwords_de_ses
@@ -534,7 +617,7 @@ tweets_word_count %>%
   ggplot +
   aes(x = token, y = n) +
   geom_col() +
-  scale_fill_viridis() +
+  #scale_fill_manual(values = party_pal) +
   coord_flip()  +
   labs("Welche Wörter wurden am häufigsten getweetet?",
        caption = "Stopwörter bereits entfernt.")
@@ -585,6 +668,8 @@ tweets_per_party_word_count %>%
 
 plot_tweets_per_party_word_count
 
+ggsave(plot_tweets_per_party_word_count,
+       file = "img/plot_tweets_per_party_word_count.pdf")
 ```
 
 
@@ -620,8 +705,11 @@ tweets_per_party_word_count_stemmed %>%
   aes(x = reorder(token, n), y = n) +
   geom_col() +
   facet_wrap(~party, scales = "free", drop = TRUE) +
-  coord_flip()
+  coord_flip() -> plot_tweets_per_party_word_count_stemmed
 
+
+ggsave(plot_tweets_per_party_word_count_stemmed,
+       file = "img/plot_tweets_per_party_word_count_stemmed.pdf")
 ```
 
 
@@ -743,7 +831,12 @@ tweets_per_party_word_count_stemmed2 %>%
   aes(x = reorder(token, n), y = n) +
   geom_col() +
   facet_wrap(~party, scales = "free", drop = TRUE) +
-  coord_flip()
+  coord_flip() -> plot_tweets_per_party_word_count_stemmed_2
+
+plot_tweets_per_party_word_count_stemmed_2
+
+ggsave(plot_tweets_per_party_word_count_stemmed_2,
+       file = "plot_tweets_per_party_word_count_stemmed_2.pdf")
 
 ```
 
@@ -759,8 +852,13 @@ tweet_tokens %>%
   aes(x = word_length) +
   geom_histogram() +
   xlim(0,30) +
-  labs(title = "Mittlere Wortlänge in Tweets der Politiker")
- 
+  labs(x = "Wortlänge",
+       y = "Häufigkeit") -> word_distrib
+
+
+ggsave(word_distrib,
+      file = "img/word_distrib.pdf") 
+
 ```
 
 ```{r}
@@ -769,7 +867,6 @@ tweet_tokens %>%
   group_by(screenName) %>% 
   summarise(word_length_avg = mean(word_length, na.rm = T),
             word_length_md = median(word_length, na.rm = T)) -> screenName_word_lengths
-
 
 ```
 

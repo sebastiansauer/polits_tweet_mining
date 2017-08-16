@@ -242,7 +242,7 @@ tweets_polits_raw %>%
 
 
 ```{r}
-save(tweets_polits_raw, file = "../data_polit_twitter/raw/tweets_polits_raw.Rdata")
+save(tweets_polits_raw, file = "../data_polit_twitter/raw/tweets_polits_raw_wo_Trump.Rdata")
 
 ```
 
@@ -254,5 +254,162 @@ save(tweets_polits_raw, file = "../data_polit_twitter/raw/tweets_polits_raw.Rdat
 save(tweets_polits_raw, file = paste0("../data_polit_twitter/raw/tweets_polits_raw_", lubridate::now(),".Rdata"))
 ```
 
+
+
+# Parse Trump Tweets
+
+
+Source: https://github.com/mkearney/trumptweets
+
+
+
+```{r}
+## load rtweet
+library(rtweet)
+```
+
+
+## Funs 
+
+Read in the following 3 functions. You'll use the last function, `trumptweets()` to download the data
+
+```{r}
+## function to scrape IDs
+.trumpids <- function(year) {
+    ## build url
+    url <- paste0("http://trumptwitterarchive.com/",
+                  "data/realdonaldtrump/", year, ".json")
+    ## return ids
+    jsonlite::fromJSON(url)[["id_str"]]
+}
+## function to download status ids
+
+
+trumpids <- function(trumptwitterarchive = TRUE) {
+    ## scrape from trumptwitterarchive.com
+    if (trumptwitterarchive) {
+        ids <- c(2009:2017) %>%
+            lapply(.trumpids) %>%
+            unlist(use.names = FALSE)
+    } else {
+        ## or from my github page (note: this one is unlikely to
+        ## be updated as frequently as trumptwitterarchive)
+        ids <- paste0(
+            "https://github.com/mkearney/trumptweets/blob/",
+            "master/data/realdonaldtrump-ids-2009-2017.csv") %>%
+            read.csv(stringsAsFactors = FALSE) %>%
+            unlist(use.names = FALSE)
+    }
+    ## return ids
+    ids
+}
+## function to download twitter data
+
+
+ids <- trumpids()
+## get newest trump tweets (set to 1000 to be safe)
+rt1 <- get_timeline(
+  "realdonaldtrump", n = 1000,
+  since_id = ids[length(ids)])
+## download archive
+message("    Downloading ", length(ids), " tweets...")
+save(rt1, file = "data/rt1.Rdata")
+rt2 <- lookup_statuses(ids[1:16000])
+message("    You're halfway there...")
+save(rt2, file = "data/rt2.Rdata")
+rt3 <- lookup_statuses(ids[16001:(length(ids))])
+message("    Huzzah!!!")
+save(rt3, file = "data/rt3.Rdata")
+
+## combine data into list
+rt <- list(rt1, rt2, rt3)
+## collapse into data frame (or salvage list if error)
+rt_df <- tryCatch(do.call("rbind", rt),
+         error = function(e) return(rt))
+
+
+trump_df_raw <- as_tibble(rt_df)
+glimpse(trump_df_raw)
+```
+
+
+## Add timestamp
+
+```{r}
+trump_df_raw %>% 
+  mutate(timestamp = lubridate::now(),
+         name = "Donald Trump") -> trump_df_raw
+
+```
+
+
+## Adapt column names 
+
+
+```{r}
+
+
+trump_df_raw %>% 
+  select(id = status_id,
+         created = created_at, 
+         screenName = screen_name,
+         statusSource = source,
+         replyToUID = reply_to_user_id,
+         replyTOSID = reply_to_status_id,
+         replyTOSN = reply_to_screen_name,
+         favoriteCount = favorite_count,
+         retweetCount = retweet_count,
+         name,
+         text) -> trump_df
+```
+
+
+## Bind rows to main dataframe
+
+Glimpse:
+
+```{r}
+names(tweets_polits_raw)
+glimpse(tweets_polits_raw)
+```
+
+
+Bind rows 
+
+```{r bind-rows-main-trump}
+tweets_polits_raw %>% 
+  bind_rows(trump_df) -> tweets_polits_raw_with_trump
+
+glimpse(tweets_polits_raw_with_trump)
+
+tweets_polits_raw_with_trump %>% 
+  filter(name == "Donald Trump", !is.na(text)) %>% 
+  select(name, screenName, text) %>% 
+  head
+  nrow
+```
+
+
+
+
+
+## Save the data file.
+
+```{r}
+save(trump_df_raw, file = "../data_polit_twitter/raw/tweets_trump_raw.Rdata")
+
+save(tweets_polits_raw_with_trump,
+     file = 
+       "../data_polit_twitter/raw/tweets_polits_raw_with_trump.Rdata")
+
+```
+
+
+## Rename
+
+
+```{r}
+tweets_polits_raw <- tweets_polits_raw_with_trump
+```
 
 

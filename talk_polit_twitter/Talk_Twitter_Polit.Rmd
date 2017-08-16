@@ -1,0 +1,140 @@
+---
+title: "Wie populistisch tweeten unsere Politiker (im Vergleich zu Donal Trump?"
+subtitle: "Eine Analyse"
+author: "Sebastian Sauer"
+date: "2017-09-heute"
+output:
+  beamer_presentation:
+    fig_caption: no
+bibliography: "/Users/sebastiansauer/Documents/Literatur/ref_mgt/library.bib"
+lang: de-De
+---
+
+
+```{r setup, include=FALSE}
+
+set.seed(1014)
+options(digits = 3)
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+# Theorie: Poppers Urhorde
+
+
+## Poppers Theorie der "Urhorde" als Rahmen für Populismus
+
+- Popper [@offges]: Entwicklung von *Stammesgesellschaft* zur *Individuumsgesellschaft*
+- **Stammesgesellschaft**: Heldenepos, Heroen, Führerpersönlichkeiten, Ehre, Gewissheit über richtig/falsch, herrschende Kaste, zementierte Gesellschaftsstrukturen, "unser Boden", "unsere Blutsbande", "unser Stamm", Individuum als Teil des Stammes, Entwicklung kaum möglich, klare Regeln, klare Strafen, "wir gegen die", Stärke als Wert, Kampfesmentalität, totalitär, starke Kohäsionskräfte, Feinde sind nötig und werden gefunden
+
+- **Individuumsgesellschaft**: Hinterfragen, Kritisieren, Ungewissheit, Zweifel, "Dahintreiben", Individuum als Individuum, schnelle Entwicklung möglich, Idee der Mündigkeit und Eigenverantwortlichkeit, Einsamkeit, humane Gesellschaft möglich
+
+
+## Populismus als Sehnsucht nach der Sicherheit der Stammesgesellschaft 
+
+- Menschen leiden (individuell unterschiedlich) am Verlust der Gewissheiten der Stammesgesellschaft
+
+- Individuumsgesellschaft von Unsicherheit, Möglichkeiten und Nichtwissen geprägt -- Gefühl des "Dahintreibens" resultiert
+
+- Populisten verheißen die Rückkehr zur Stammesgesellschaft
+
+
+## Populismus heute -- im Aufwind?
+
+- Zu Zeiten von *Umbrüchen* steigt das Leiden an der Individuumsgesellschaft; Stammesgesellschaft wird attraktiver
+
+- Zu Zeiten des *Vormarschs der Individuumsgesellschaft* steigt das Leiden an ihr; Stammesgesellschaft wird attraktiver
+
+- Zur Zeiten von *Krisen* steigt das Leiden an der Ungewissheit; der Wunsch nach Gewissheit steigt, die Stammesgesellschaft wird attraktiver
+
+
+## Forschungsfragen
+
+- Unterscheiden sich deutsche Parteien in ihrer Neigung zum Populismus?
+
+- Ist die AfD besonders populistisch?
+
+- Ähneln sich deutsche Parteien (und besonders die AfD) in ihrer Kommunikationsart Donald Trump?
+
+
+# Methode: Twitter-Analyse
+
+
+## Operationalisierung: Tweets
+
+- Kommunikationsart der Parteien/Parteirepräsentanten durch Tweets (Twitter Kurznachrichten) erfasst
+
+- Ermöglicht 
+    - die Verarbeitung großer Datenmengen
+    - das Anlegen objektiver Kriterien
+    - hohe Reproduzierbarkeit
+
+
+## Populismus-Score (PopScore; $\pi$)
+
+- Ungewichteter Mittelwert von z-Werten
+
+- Indikatoren
+    1. Anteil von Ausrufezeichen `!`
+    2. Anteil von Fragezeichen `?` (Komplement)
+    3. Emotionalität^[http://wortschatz.uni-leipzig.de/de/download] der Wörter
+    4. Quote von Adverben zu Adjektiven
+    5. Mittlere Wortlänge
+    6. Anteil der Tweets mit Semikolons `;`
+    7. Anteil der Wörter in GROSSBUCHSTABEN
+    
+
+## Hypothesen
+
+- $\forall i  \neq REP: \pi_{REP} > \pi_i, i \in P$
+
+- $\forall i  \neq AFD, REP: \pi_{AFD} > \pi_i, i \in P$
+
+
+# Daten
+
+## Stichprobe - Überblick
+
+- $n \approx 400k$ Tweets deutscher Politiker
+- $m \approx 32k$ Tweets von Donald Trump
+- $k = 200$ Twitter Accounts
+- $p = 8$ politische Partein; P = {AfD, CDU, CSU, FDP, Grüne, Linke, SPD, (fraktionslos), REP}
+
+
+## Diagramm timeline tweets
+
+![](../img/p_tweets_timeline2.pdf)
+
+
+## Die meisten Accounts stammen von der SPD
+
+![](../img/p_accounts_per_party.pdf)
+
+## Die meisten Tweets stammen von der SPD
+
+![](../img/p_tweets_per_party.pdf)
+
+
+## Img Tweets pro Account pro Tag
+
+
+
+# Ergebnisse: Teilweise bestätigend
+
+## 
+
+
+## Literatur

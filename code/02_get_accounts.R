@@ -25,7 +25,7 @@ polits_df %>%
                                  replacement = "gruene"),
          screenName = str_replace(string = screenName,
                                   pattern = "@",
-                                  replacement = "")) -> dummy
+                                  replacement = "")) -> polits_df
 
 
 

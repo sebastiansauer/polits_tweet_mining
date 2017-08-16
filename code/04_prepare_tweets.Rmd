@@ -21,6 +21,7 @@ knitr::opts_chunk$set(echo = TRUE,
 ```
 
 
+**Attention** Raw data is being touched. Watch out, do not mess.
 
 # Warmup
 
@@ -31,6 +32,7 @@ First load some libraries.
 library(tidyverse)
 library(readr)
 library(lubridate)
+library(stringr)
 ```
 
 
@@ -38,9 +40,11 @@ And the data - raw data.
 
 ```{r load-raw-data}
 getwd()
-load("../data_polit_twitter/raw/tweets_polits_raw.Rdata")
+#load("../data_polit_twitter/raw/tweets_polits_raw.Rdata")
 
 polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter_raw.csv")
+
+load("../data_polit_twitter/raw/tweets_polits_raw_with_trump.Rdata")
 ```
 
 
@@ -51,7 +55,7 @@ polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter_raw.
 
 
 
-Convert to lower_case
+## Convert to lower_case
 ```{r}
 
 polits_df %>% 
@@ -74,17 +78,28 @@ polits_df %>%
   glimpse
 ```
 
-
+## Join
 
 ```{r}
 polits_df %>% 
   dplyr::select(screenName, party) -> polits_parties
 
-tweets_polits_raw %>% 
+tweets_polits_raw_with_trump %>% 
   left_join(polits_parties, by = "screenName") -> tweets_polits
 
+names(tweets_polits)
 
 ```
+
+
+## Ensure UTF8
+
+```{r}
+Encoding(tweets_polits$text) <- "UTF8"
+
+```
+
+
 
 Glimpse:
 
@@ -92,21 +107,6 @@ Glimpse:
 tweets_polits %>% glimpse
 ```
 
-
-
-
-# Join party data to acount names
-
-
-Repair some merging errors - run only if necessary.
-
-```{r eval = FALSE}
-tweets_polits_raw %>% 
-  select(-c(human.x, human.y, party, name.y),
-           name = name.x) -> tweets_polits_raw
-
-names(tweets_polits_raw)
-```
 
 
 
@@ -128,22 +128,8 @@ save(tweets_polits, file = "../data_polit_twitter/raw/tweets_polits_with_party_n
 
 ## Erase duplicates
 
-```{r eval = FALSE}
 
-# do NOT run
-tweets_polits %>% 
-  #group_by(screenName) %>% 
-  mutate(is_duplicate = duplicated(id)) %>% 
-  filter(!is_duplicated) -> tweets_with_bug
-
-nrow(tweets_with_bug)  # ~62k
-```
-
-The code above erased way too many tweets. There is some bug. Don't use this output.
-
-Proportion of tweets left (non-duplicates): `r nrow(tweets2)/nrow(tweets_polits)`.
-
-This code works:
+needs some time...
 
 ```{r cache = TRUE}
 tweets_polits %>% 
@@ -152,7 +138,7 @@ tweets_polits %>%
   ungroup -> tweets_df
 
 tweets_df %>% 
-  nrow  # ~380k
+  nrow  # ~410k
 ```
 
 
@@ -162,18 +148,11 @@ Proportion of tweets left (non-duplicates): `r nrow(tweets_df)/nrow(tweets_polit
 
 
 
-
-
-
-
-# Ensure UTF8
-
+## Check for The Donald
 
 ```{r}
-Encoding(tweets_df$text) <- "UTF8"
-tweets_df$text <- stringi::stri_enc_toutf8(tweets_df$text)
-tweets_df$screenName <- stringi::stri_enc_toutf8(tweets_df$screenName)
-tweets_df$party <- stringi::stri_enc_toutf8(tweets_df$party)
+tweets_df %>% 
+  count(party)
 ```
 
 
@@ -201,6 +180,7 @@ Merge this information to the dataset of the politicians `polits_df`.
 ```{r}
 
 names(polits_df)
+names(polits_tweet_times)
 
 polits_df %>% 
  left_join(polits_tweet_times, by = "screenName") -> polits_df
@@ -233,7 +213,8 @@ tweets_df %>%
   group_by(screenName) %>% 
   summarise(n = n()) %>% 
   left_join(polits_df, by = "screenName") -> polits_df
-  
+
+names(polits_df)  
 ```
 
 
@@ -241,20 +222,14 @@ tweets_df %>%
 # Daily tweets
 
 ```{r}
+glimpse(polits_df)
+
 polits_df %>% 
   mutate(daily_tweets_n = n / tweet_period,
          yearly_tweets_n = daily_tweets_n * 365) -> polits_df
 ```
 
 
-
-
-
-# Check
-
-```{r}
-
-```
 
 
 # Correct typo
@@ -264,10 +239,34 @@ tweets_df %>%
   mutate(party = recode(party, Grune = "Gruene")) -> tweets_df
 
 
-polits_df %>% 
-  mutate(party = recode(party, Grune = "Gruene")) -> polits_df
+```
 
-  
+
+# Convert `party` to factor (and `str_to_lower`)
+
+```{r}
+tweets_df %>% 
+  mutate(party = str_to_lower(party),
+         party = factor(party)) -> tweets_df
+
+names(tweets_df)
+```
+
+
+# Prepare color scalse for partis
+
+```{r}
+tweets_df$party %>% levels
+
+party_pal <- c(afd = "dodgerblue3", 
+               cdu = "grey2",
+               csu = "steelblue2",
+               fdp = "yellow1",
+               fraktionslos = "grey70",
+               gruene = "forestgreen",
+               linke = "violet",
+               spd = "red",
+               trump = "tan1")
 ```
 
 
@@ -277,5 +276,6 @@ polits_df %>%
 ```{r}
 write_csv(polits_df, path = "../data_polit_twitter/polits_df.csv")
 save(tweets_df, file = "../data_polit_twitter/tweets_df.Rdata")
+save(party_pal, file = "data/party_pal.Rdata")
 ```
 

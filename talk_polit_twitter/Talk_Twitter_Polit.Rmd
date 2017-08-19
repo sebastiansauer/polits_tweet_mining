@@ -115,7 +115,8 @@ pop_vars_de %>% as.character
 
 ## Hypothese
 
-- Populismus-Reihenfolge: Trump > AfD > *sonstige*
+- Populismus-Reihenfolge: Trump > AfD > *sonstige*  
+- präregistriert: osf  
 
 
 # Daten
@@ -128,6 +129,11 @@ pop_vars_de %>% as.character
 - $k = 200$ Twitter Accounts
 - $p = 8$ politische Partein; P = {AfD, CDU, CSU, FDP, Grüne, Linke, SPD, (fraktionslos), Trump/GOP}
 - Die Daten wurden im August 2017 gesammelt.
+
+
+## Datenaggregation
+
+![](../img/daten_aggregation-crop.pdf)
 
 
 ## Accounts^[Stand: August 2017]

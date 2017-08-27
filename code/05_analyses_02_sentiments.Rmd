@@ -42,10 +42,10 @@ And the data.
 ```{r load-data}
 load("../data_polit_twitter/tweets_df.Rdata")
 load("../data_polit_twitter/tweet_tokens.Rdata")
-
-polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
+load("../data_polit_twitter/polits_df.Rdata")
 
 load("data/party_pal.Rdata")
+sentiment_df <- read_csv("data/sentiment_df.csv")
 
 
 ```
@@ -384,6 +384,12 @@ names(tweet_tokens)
 #sentiment_df %>% 
 #  rename(token = Wort) -> sentiment_df
 
+
+tweet_tokens %>% 
+  filter(party %in% c(NA, "fraktionslos")) %>% 
+  select(screenName, party) %>% 
+  distinct
+
 tweet_tokens %>% 
   filter(!(party %in% c(NA, "fraktionslos"))) %>% 
   inner_join(sentiment_df, by = "token") %>% 
@@ -488,15 +494,18 @@ polits_df %>%
 
 ```{r plot-emo-scores-screenName}
 polits_df %>% 
-  select(screenName, emo_score, emo_abs_score) %>% 
+  select(screenName, emo_score, emo_abs_score, party) %>% 
   arrange(-emo_abs_score) %>% 
-  slice(1:25) %>% 
+  filter(row_number() %in% 1:10 | row_number() %in% (n()-9):n())
+
+%>% #  slice(1:25) %>% 
   ggplot +
   aes(x = reorder(screenName, -emo_score), y = emo_score) +
   geom_line(group = 1) +
-  geom_point(aes(color = emo_score)) +
+  geom_point(aes(color = party)) +
   coord_flip() +
-  scale_color_gradient(high = "red", low = "green") +
+  scale_color_manual(values = party_pal) +
+  #scale_color_gradient(high = "red", low = "green") +
   labs(x = "Namen",
        y = "Emo-Score") -> p_emo_scores_screenNames
 

@@ -10,8 +10,11 @@ urlcolor: blue
 output:
   beamer_presentation:
     fig_caption: no
-bibliography: "/Users/sebastiansauer/Documents/Literatur/ref_mgt/library.bib"
+bibliography: 
+  - "bib.bib"
 lang: de-De
+nocite: |
+  @*
 ---
 
 
@@ -111,12 +114,14 @@ pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
 pop_vars_de %>% as.character
 ```
 
+
+
     
 
 ## Hypothese
 
 - Populismus-Reihenfolge: Trump > AfD > *sonstige*  
-- präregistriert: osf  
+- präregistriert^[Datenerhebung läuft bis Ende 2017]: <https://osf.io/wv4fx/>  
 
 
 # Daten
@@ -136,7 +141,14 @@ pop_vars_de %>% as.character
 ![](../img/daten_aggregation-crop.pdf)
 
 
-## Accounts^[Stand: August 2017]
+## Zentrale Analyse-Schritte
+
+1. Pro Politiker die Populismus-Indikatoren ($I$) berechnen
+2. Umpolen und z-Werte berechnen für $I$
+3. Auf Partein aggregieren
+
+
+## Accounts^[Stand: August 2017] der Politiker
 
 - [Liste](https://twitter.com/dw_politics/lists/german-politicians/members) "German Politicians" der [Deutschen Welle](http://www.dw.com/de/unternehmen/profil/s-30626)
 - Twitter-Accounts des [Bundesvorstands der AfD](https://www.afd.de/partei/bundesvorstand/)
@@ -174,11 +186,13 @@ Tweets pro Accounts pro Tag
 
 ## Trumps Populismus-Score ist am größten 
 
-The greatest, really, everybody knows it
+z-Werte
 
 ![](../img/p_party_pop_scores_2.pdf)
 
 ## Ohne Trump: Union/SPD am wenigsten populistisch
+
+z-Werte
 
 ![](../img/p_party_pop_scores_wo_trump.pdf)
 
@@ -189,6 +203,8 @@ The greatest, really, everybody knows it
 ![](../img/p_party_pop_scores_details_no_trump.pdf)
 
 ## "Top-10 der Populisten"^[cum grano salis] - zumeist von Der Linken
+
+z-Werte
 
 ![](../img/p_pop_screenName.pdf)
 
@@ -212,8 +228,9 @@ top_1_pop_account_sample_tweets %>%
 ```
 
 
+## 
 
-# Diskussion: Erste Schritte zur Psychoinformatik
+# Diskussion: Interessante Methode, viel Raum zur Verbesserung
 
 
 ## Stärken
@@ -238,12 +255,16 @@ top_1_pop_account_sample_tweets %>%
 **Sebastian Sauer**  
 sebastian.sauer@fom.de
 
-twitter: sauer_sebastian, psy_pol  
+twitter: [sauer_sebastian](https://twitter.com/sauer_sebastian?lang=en), [psy_pol](https://twitter.com/psy_pol)   
 blog: https://sebastiansauer.github.io  
 
 Folien: osf  
 Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://github.com/sebastiansauer/polits_tweet_mining> 
 
 
+## sessionInfo()
+
+- R-Pakete: github
+- sessionInfo: github
 
 ## Literatur

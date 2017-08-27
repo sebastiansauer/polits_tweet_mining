@@ -14,6 +14,15 @@ Important:
 
 Do not run this script out of curiosity, because data collecting via the twitter api is not easy to automate, and requires some manual work (and some time). Rather, use this script to update and add new (twitter) data.
 
+
+
+#tl;dr
+
+This script scrapes tweets thru the Twitter API.
+Output file: `tweets_polits_raw_with_trump.Rdata`
+
+
+
 # load packages
 
 

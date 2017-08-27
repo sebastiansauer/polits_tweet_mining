@@ -23,6 +23,20 @@ knitr::opts_chunk$set(echo = TRUE,
 
 **Attention** Raw data is being touched. Watch out, do not mess.
 
+
+#tl;dr
+
+This script cleanses and prepares the tweet data for further analysis.
+Input: 
+`german_politicians_twitter_raw.csv` -- Twitter accounts
+`tweets_polits_raw_with_trump.Rdata`  -- Tweets
+
+Output:
+`polits_df.Rdata` -- Twitter Accounts
+`tweets_df.Rdata` -- Tweets
+`party_pal.Rdata` -- Color scheme
+
+
 # Warmup
 
 
@@ -33,14 +47,15 @@ library(tidyverse)
 library(readr)
 library(lubridate)
 library(stringr)
+library(testthat)
 ```
 
+## Load data
 
 And the data - raw data.
 
 ```{r load-raw-data}
 getwd()
-#load("../data_polit_twitter/raw/tweets_polits_raw.Rdata")
 
 polits_df <- read_csv("../data_polit_twitter/raw/german_politicians_twitter_raw.csv")
 
@@ -48,6 +63,47 @@ load("../data_polit_twitter/raw/tweets_polits_raw_with_trump.Rdata")
 ```
 
 
+
+
+## Checks
+
+```{r}
+polits_df <- filter(polits_df, !is.na(screenName))
+
+if (any(is.na(polits_df$screenName))) cat("There are screenNames missing!")
+if (any(is.na(polits_df$party))) cat("There are party names missing!")
+
+polits_df %>% 
+  filter(str_detect(screenName,"hahn")) %>% 
+  select(screenName, party)
+```
+
+
+## Check for Non-Ascii
+
+Watch out! There are some hidden non-Ascii characters in Twitter accounts. For example a character which looks as "ff" - but it's ONE character, albeit not an ASCII one. Remove such characters before proceeding! Do that manually in the raw accounts file. Look out for:
+
+- ff
+- fl
+- fi
+
+
+```{r}
+tools::showNonASCII(polits_df$screenName)
+```
+
+There should be NONE non-Ascii character. Only ASCII characters are valid.
+
+
+
+## Remove non-human accounts
+
+Accounts such as "gruene_bt" should be removed.
+
+```{r}
+polits_df %>% 
+  filter(human == "y") -> polits_df
+```
 
 
 
@@ -85,11 +141,53 @@ polits_df %>%
   dplyr::select(screenName, party) -> polits_parties
 
 tweets_polits_raw_with_trump %>% 
-  left_join(polits_parties, by = "screenName") -> tweets_polits
+  right_join(polits_parties, by = "screenName") -> tweets_polits
 
 names(tweets_polits)
 
 ```
+
+
+## Check
+
+
+```{r}
+
+if (any(is.na(tweets_polits$screenName))) {
+  cat("There are screenNames missing!") } else {
+    cat("There are NO screenNames missing. OK.")
+  }
+
+if (!any(is.na(tweets_polits$party))) {
+  cat("There are party NO names missing. OK.")} else {
+     cat("There are party names missing!\n")
+    tweets_polits %>% 
+      filter(is.na(party)) %>% 
+      select(screenName, party) %>% 
+      distinct()
+  }
+
+
+```
+
+
+Count the number of different screenNames
+
+```{r}
+polits_df %>% 
+  select(screenName) %>% 
+  n_distinct -> dummy1
+dummy1
+
+tweets_polits %>% 
+  select(screenName) %>% 
+  n_distinct -> dummy2
+dummy2
+
+expect_true(dummy1 == dummy2)
+
+```
+
 
 
 ## Ensure UTF8
@@ -116,6 +214,8 @@ tweets_polits %>% glimpse
 tweets_polits %>% 
   nrow
 ```
+
+~1*e+6 (1 Mio)
 
 
 ## Save this updated data (joined with party names)
@@ -145,7 +245,13 @@ tweets_df %>%
 ## How many words in total?
 
 ```{r}
-tweets_df$text %>% str_count %>% sum
+tweets_df$text %>% 
+  head
+```
+
+
+```{r}
+tweets_df$text %>% str_count %>% sum(., is.na = TRUE)
 ```
 
 Approx ~50 Mio words
@@ -197,6 +303,15 @@ names(polits_df)
 ```
 
 
+## Check
+
+
+```{r}
+if (any(is.na(polits_df$screenName))) cat("There are screenNames missing!")
+if (any(is.na(polits_df$party))) cat("There are party names missing!")
+```
+
+
 Merge this to the `tweets_df` dataframe.
 
 ```{r}
@@ -223,6 +338,20 @@ tweets_df %>%
 
 names(polits_df)  
 ```
+
+
+## Check
+
+
+```{r}
+if (any(is.na(polits_df$screenName))) cat("There are screenNames missing!")
+if (any(is.na(polits_df$party))) cat("There are party names missing!")
+
+polits_df %>% 
+  select(screenName) %>% 
+  n_distinct
+```
+
 
 
 

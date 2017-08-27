@@ -1,0 +1,14 @@
+We will extract the following features from the raw data (Tweets plus meta data):
+
+- Emotional connotation (positive or negative)
+- Word length
+- Emotionality
+- Number (proportion) of negatively connotated words
+- Number (proportion) of positively connotated words
+- most frequent words and bigrams
+- Number (proporting) of exlamation marks relative to number of tweets
+- Number (proportion) of exlamation marks relative to number of tweets
+- Ratio of adjectives to adverbs
+
+
+Out of this indicators, we will build a "populism measure". 

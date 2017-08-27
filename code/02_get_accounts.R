@@ -1,4 +1,9 @@
-# # Prepare list of politicians
+# Work in progress. DRAFT.
+
+
+
+
+# Prepare list of politicians
 
 library(tidyverse)
 library(stringr)

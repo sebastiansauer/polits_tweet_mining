@@ -16,8 +16,14 @@ knitr::opts_chunk$set(echo = TRUE,
 ```
 
 
+---
 
-Let's perform some initial analyses of polit tweets.
+ Work in progress. DRAFT.
+
+---
+
+
+Let's perform some  analyses of polit tweets.
 
 # Setup
 
@@ -249,7 +255,7 @@ polits_df %>%
 polits_df %>% 
   group_by(party) %>% 
   filter( party != "fraktionslos") %>% 
-  summarise(pop_z_md = median(pop_z_md)) %>% 
+  summarise(pop_z_md = median(pop_z_md, na.rm = TRUE)) %>% 
   ggplot +
   aes(x = reorder(party, pop_z_md), y = pop_z_md, fill = party) +
   geom_col() +
@@ -374,7 +380,7 @@ pop_vars_de_median <- c(word_length_md_comp_z_median = "Wortkürze",
                  emo_score_neg_z_median =  "Wert an negativer Emotion",
                  emo_abs_score_z_median = "Wert an Emotionalität",
                  cap_prop_z_median = "Anteil GROSSBUCHSTABEN",
-                 adj_adv_quote_z_median =  "Verhältnis Adverben zu Adjektiven")
+                 adj_adv_quote_z_median =  "Verhältnis Adjektiven zu Adverben")
 
 pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
                  neg_words_ratio_z = "Verhältnis negativer/positiver Wörter",
@@ -383,7 +389,7 @@ pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
                  emo_score_neg_z =  "Wert an negativer Emotion",
                  emo_abs_score_z = "Wert an Emotionalität",
                  cap_prop_z = "Anteil GROSSBUCHSTABEN",
-                 adj_adv_quote_z =  "Verhältnis Adverben zu Adjektiven")
+                 adj_adv_quote_z =  "Verhältnis Adjektiven zu Adverben")
 
 
 ```

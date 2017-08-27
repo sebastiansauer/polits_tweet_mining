@@ -43,7 +43,7 @@ library(knitr)
 And the data.
 ```{r load-data}
 load("../data_polit_twitter/tweets_df.Rdata")
-polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
+load("../data_polit_twitter/polits_df.Rdata")
 load("data/party_pal.Rdata")
 
 data(stopwords_de, package = "lsa")
@@ -58,7 +58,25 @@ Only consider screenNames with more than 1 tweet.
 
 ```{r}
 polits_df %>% 
+  filter(n == 1)  %>% 
+  select(screenName, party) -> accounts_with_one_tweet
+```
+
+```{r}
+polits_df %>% 
   filter(n > 1) -> polits_df
+```
+
+
+```{r}
+tweets_df %>% 
+  filter(screenName %in% accounts_with_one_tweet$screenName) %>% nrow
+```
+
+
+```{r}
+tweets_df %>% 
+  filter(!screenName %in% accounts_with_one_tweet$screenName) -> tweets_df
 ```
 
 
@@ -220,6 +238,8 @@ tweets_df %>%
   scale_color_manual(values = party_pal) +
   coord_flip() -> p_tweets_timeline2
 
+p_tweets_timeline2
+
 ggsave(p_tweets_timeline2, file = "p_tweets_timeline2.pdf")
 ```
 
@@ -340,8 +360,23 @@ tweets_df %>%
 tweets_df %>% 
   group_by(screenName) %>% 
   summarise(word_count = str_count(text) %>% sum) %>% 
+  ungroup %>% 
   full_join(polits_df, by = "screenName") -> polits_df
   
+```
+
+
+## Checks
+
+```{r}
+
+if (any(is.na(polits_df$screenName))) cat("There are screenNames missing!")
+if (any(is.na(polits_df$party))) cat("There are party names missing!")
+
+polits_df %>% 
+  select(screenName) %>% 
+  n_distinct
+
 ```
 
 
@@ -360,7 +395,7 @@ polits_df %>%
   aes(x = reorder(party, tweets_m), y = tweets_m) +
   geom_col(aes(fill = party)) +
   labs(x = "Partei",
-       y = "Mittlere Anzahl an Tweets pro Tag") +
+       y = "Mittlere Anzahl (Durchschnitt) an Tweets pro Tag") +
   scale_fill_manual(values = party_pal) +
   coord_flip() -> p_tweets_day_party_mean
 
@@ -429,9 +464,14 @@ polits_df %>%
   aes(x = reorder(screenName, daily_tweets_n), y = daily_tweets_n) +
   geom_col() +
   coord_flip() +
-  geom_text(aes(label = n))
+  geom_text(aes(label = n)) +
+  
   
 ```
+
+
+## Closer look to `c_linder`
+
 
 For instance, `c_lindner`:
 
@@ -442,8 +482,7 @@ polits_df %>%
   dplyr::select(n, first_tweet)
 ```
 
-
-## Closer look
+### Number of tweets per year
 
 More than 3000 tweets in roughly a year? That's quite a lot; maybe something's not quite right under the woodshed in these data :(
 
@@ -534,7 +573,7 @@ lindner %>%
 
 ```
 
-## Duplicates for Lindner?
+### Duplicates for Lindner?
 
 Looks all quite reasonable. 
 
@@ -549,7 +588,7 @@ lindner %>%
 Nup.
 
 
-## Look at some peak days
+### Look at some peak days
 
 
 ```{r}
@@ -576,7 +615,7 @@ lindner %>%
   select(text, created, id) -> lindner_most_tweeted
 ```
 
-## Tweets deleted?
+### Tweets deleted?
 
 Interesting. There are tweets missing in the timeline of `c_lindner`. For instance, tweets 4 to 6 in `lindner_most_tweeted` are appearing in the timeline on Twitter. The ids are:
 
@@ -586,9 +625,43 @@ lindner_most_tweeted %>%
   select(id)
 ```
 
-## Conclusion
+### Conclusion
 
 OK, so it appears there's an explanation in the differing number of tweets: There are some tweets missing in the timeline on the Website, appearingly deleted by the owner of the account.
+
+
+## Closer look: `EskenSaskia`
+
+
+### Glimpse
+```{r}
+polits_df %>% 
+  filter(screenName == "EskenSaskia") %>% 
+  glimpse
+```
+
+
+### Peak days
+
+```{r}
+tweets_df %>% 
+  filter(screenName == "EskenSaskia") %>% 
+  mutate(day = date(created)) %>% 
+  count(day, sort = TRUE)
+```
+
+
+### August
+
+```{r}
+tweets_df %>% 
+  filter(screenName == "EskenSaskia") %>% 
+  mutate(day = date(created)) %>% 
+  filter(month(day) == 8) %>% 
+  count(day, sort = TRUE)
+```
+
+It appears true: This person tweets a lot; more than Trump. I have checked on the Twitter site, and there is even ways more tweets than were delieverd via the API. She simply tweets a lot.
 
 
 
@@ -635,7 +708,7 @@ tweets_df %>%
 
 ```
 
-Some checks
+### Checks
 
 Trump included?
 ```{r}
@@ -669,6 +742,7 @@ This one needs some seconds:
 tweet_tokens %>% 
   count(token, sort = TRUE) -> tweets_word_count
 
+
 ```
 
 ```{r}
@@ -692,7 +766,11 @@ tweets_word_count %>%
   #scale_fill_manual(values = party_pal) +
   coord_flip()  +
   labs("Welche Wörter wurden am häufigsten getweetet?",
-       caption = "Stopwörter bereits entfernt.")
+       caption = "Stopwörter bereits entfernt.") -> p_freq_words_total
+
+p_freq_words_total
+
+ggsave(p_freq_words_total, file = "img/p_freq_words_total.pdf")
 ```
 
 
@@ -751,7 +829,8 @@ ggsave(plot_tweets_per_party_word_count,
 ```{r}
 tweet_tokens %>% 
   mutate(token = wordStem(.$token, language = "german")) %>% 
-  count(party, token, sort = TRUE) -> tweets_per_party_word_count_stemmed
+  count(party, token, sort = TRUE) %>% 
+  ungroup -> tweets_per_party_word_count_stemmed
 
 
 names(tweets_per_party_word_count_stemmed)
@@ -779,6 +858,7 @@ tweets_per_party_word_count_stemmed %>%
   facet_wrap(~party, scales = "free", drop = TRUE) +
   coord_flip() -> plot_tweets_per_party_word_count_stemmed
 
+plot_tweets_per_party_word_count_stemmed
 
 ggsave(plot_tweets_per_party_word_count_stemmed,
        file = "img/plot_tweets_per_party_word_count_stemmed.pdf")
@@ -893,7 +973,7 @@ Plot again with party-related terms stemmed:
 ```{r}
 tweets_per_party_word_count_stemmed2 %>% 
   filter(!(party %in% c("NA", "fraktionslos", NA))) %>% 
-  sample_n(1000) %>% 
+  #sample_n(1000) %>% 
   group_by(party) %>% 
   arrange(-n) %>% 
   slice(1:10) %>% 
@@ -903,6 +983,8 @@ tweets_per_party_word_count_stemmed2 %>%
   aes(x = reorder(token, n), y = n) +
   geom_col() +
   facet_wrap(~party, scales = "free", drop = TRUE) +
+  labs(x = "Wort",
+       y = "Anzahl") +
   coord_flip() -> plot_tweets_per_party_word_count_stemmed_2
 
 plot_tweets_per_party_word_count_stemmed_2
@@ -938,6 +1020,50 @@ ggsave(word_distrib,
 ```
 
 
+# Word lengths 
+
+
+## Word lenghts per person
+
+```{r}
+tweet_tokens %>% 
+  mutate(word_length = str_length(token)) %>% 
+  group_by(screenName) %>% 
+  summarise(word_length_md = median(word_length)) -> word_length_screenName
+```
+
+Join to polits_df
+
+```{r}
+polits_df %>% 
+  left_join(word_length_screenName) -> polits_df
+```
+
+## Plot word lengths per party
+
+```{r}
+
+polits_df %>% 
+  select(word_length_md, party) %>% 
+  group_by(party) %>% 
+  summarise(word_length_md_party_md = median(word_length_md, na.rm = T)) %>% 
+  ggplot +
+  aes(y = word_length_md_party_md, x = reorder(party, word_length_md_party_md)) +
+  geom_col() +
+  labs(x = "Partei",
+       y = "Wortlänge (Median)") +
+  coord_flip() -> word_length_party
+
+
+word_length_party
+
+ggsave(word_length_party, file = "img/word_length_party.pdf")
+
+
+```
+
+
+
 ## Comp word lengths
 
 ```{r comp-word-lengths}
@@ -945,7 +1071,8 @@ tweet_tokens %>%
   mutate(word_length = str_length(token)) %>% 
   group_by(screenName) %>% 
   summarise(word_length_avg = mean(word_length, na.rm = T),
-            word_length_md = median(word_length, na.rm = T)) -> screenName_word_lengths
+            word_length_md = median(word_length, na.rm = T)) %>% 
+  ungroup -> screenName_word_lengths
 
 
 screenName_word_lengths %>% 

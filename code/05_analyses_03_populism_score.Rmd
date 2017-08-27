@@ -41,8 +41,10 @@ library(knitr)
 And the data.
 ```{r load-data}
 load("../data_polit_twitter/tweets_df.Rdata")
-polits_df <- read_csv("../data_polit_twitter/polits_df.csv")
 load("../data_polit_twitter/tweet_tokens.Rdata")
+load("../data_polit_twitter/polits_df.Rdata")
+load("data/party_pal.Rdata")
+
 ```
 
 
@@ -84,7 +86,8 @@ tweets_df %>%
             exclamation_marks_rel = exclamation_marks_abs / n(),
             party = first(party),
             complement_question_mark_rel = str_count(text, pattern = "\\?") %>% 
-              sum %>% `/`(., n())) -> populism_scores
+              sum %>% `/`(., n())) %>% 
+  ungroup -> populism_scores
   
 ```
 
@@ -96,7 +99,7 @@ tweets_df %>%
 populism_scores %>% 
   select(-party)  %>%  # prevent duplicate column
   left_join(polits_df, by = "screenName") %>% 
-  mutate(exclamation_prop = exclamation_marks_abs / word_count)-> dummy
+  mutate(exclamation_prop = exclamation_marks_abs / word_count) -> polits_df
 ```
 
 
@@ -203,7 +206,8 @@ polits_df %>%
          neg_prop = neg_prop,
          cap_prop = cap_prop,
          adj_adv_quote = adj_adv_quote,
-         emo_words_prop = neg_prop + pos_prop) -> polits_df
+         emo_words_prop = neg_prop + pos_prop) %>% 
+  ungroup -> polits_df
          
 ```
 

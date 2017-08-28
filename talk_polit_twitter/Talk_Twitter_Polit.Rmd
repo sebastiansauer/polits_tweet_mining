@@ -4,7 +4,7 @@ title: |
   |  (im Vergleich zu Donal Trump)?
 subtitle: "Twitter-Text-Mining"
 author: "Sebastian Sauer, FOM Hochschule, Nürnberg"
-date: "2017-09-heute"
+date: "AOW 2017"
 linkcolor: blue
 urlcolor: blue
 output:
@@ -109,7 +109,7 @@ pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
                  emo_score_neg_z =  "Wert an negativer Emotion",
                  emo_abs_score_z = "Wert an Emotionalität",
                  cap_prop_z = "Anteil GROSSBUCHSTABEN",
-                 adj_adv_quote_z =  "Verhältnis Adverben zu Adjektiven")
+                 adj_adv_quote_z =  "Verhältnis von Adjektiven zu Adverben")
 
 pop_vars_de %>% as.character
 ```
@@ -178,6 +178,8 @@ Tweets pro Accounts pro Tag
 
 
 ## Grüne: Am meisten Gezwitscher; CSU: am wenigsten
+
+Tweets pro Tag (Median)
 
 ![](../img/p_tweets_day_party_md_no_trump.pdf)
 

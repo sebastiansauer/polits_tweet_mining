@@ -1,0 +1,222 @@
+---
+title: "Computing the Urhorde-Score"
+author: "Sebastian Sauer"
+date: "3 8 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath('../'))
+
+
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      fig.align = "center",
+                      cache = TRUE)
+```
+
+
+---
+
+ Work in progress. DRAFT.
+
+---
+
+
+Let's perform some  analyses of polit tweets.
+
+# Setup
+
+
+First load some libraries.
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(magrittr)
+library(tidytext)
+library(stringr)
+library(viridis)
+library(wordcloud)
+library(SnowballC)
+library(knitr)
+```
+
+
+And the data.
+```{r load-data}
+load("../data_polit_twitter/tweets_df.Rdata")
+load("../data_polit_twitter/tweet_tokens.Rdata")
+load("../data_polit_twitter/polits_df.Rdata")
+load("data/party_pal.Rdata")
+load("../data_polit_twitter/party_pop_scores.Rdata")
+horde <- read_csv("data/hordenlexikon.csv")
+
+
+```
+
+
+glimpse
+
+```{r}
+glimpse(horde)
+
+horde
+```
+
+
+# Count horde tokens
+
+## Join token_df with horde
+
+
+```{r}
+tweet_tokens %>% 
+  inner_join(horde, by = "token") -> horde_tokens
+```
+
+
+
+## Count per account and join with polits_df
+
+
+```{r}
+horde_tokens %>% 
+  group_by(screenName) %>% 
+  summarise(n_horde = n()) -> horde_accounts
+
+polits_df %>% 
+  left_join(horde_accounts, by = "screenName") -> polits_df
+```
+
+
+## Compute relative horde measure
+
+```{r}
+polits_df %>% 
+  mutate(horde_score = (n_horde / n) * 100) -> polits_df
+
+polits_df %>% 
+  select(screenName, party, horde_score) %>% 
+  arrange(-horde_score) %>% 
+  slice(1:25) %>% 
+  ggplot() +
+  aes(x = reorder(screenName, horde_score), y = horde_score) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Politiker",
+       fill = "Partei",
+       y = "Relative Häufigkeit von Hordenwörtern") -> p_horde_01
+
+p_horde_01
+
+ggsave(p_horde_01, file = "img/p_horde_01.png",
+       width = 7,
+       height = 4)
+```
+
+Quite strange, the AfD does not appear. Maybe it is enlightening to show how often - and by whom - the word "deutsch" or "deutschland" was tweeted.
+
+## Count the token "deutsch" in tweet_tokens
+
+```{r}
+tweet_tokens %>% 
+  filter(str_detect(token, "deut\\w+")) %>% 
+  count(screenName, sort = TRUE) %>% 
+  rename(n_deutsch = n) -> deutsch_screenName
+  
+
+
+```
+
+
+## Join with polits_df
+
+```{r}
+polits_df %>% 
+  left_join(deutsch_screenName) %>% 
+  mutate(deutsch_score = n_deutsch / n) -> polits_df
+
+polits_df %>% 
+  rename(deutsch_score = Deutsch_score) -> polits_df
+```
+
+
+## Plot Deutsch-Scores
+
+```{r}
+polits_df %>% 
+  select(screenName, party, deutsch_score) %>% 
+  arrange(-deutsch_score) %>% 
+  slice(1:25) %>% 
+  ggplot() +
+  aes(x = reorder(screenName, deutsch_score), 
+      y = deutsch_score) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Politiker",
+       fill = "Partei",
+       y = "Relative Häufigkeit von 'Deutsch'") -> p_horde_02
+
+p_horde_02
+
+ggsave(p_horde_02, file = "img/p_horde_02.png",
+       width = 7,
+       height = 4)
+```
+
+## Plot deutsch score per party
+
+```{r}
+polits_df %>% 
+  select(screenName, party, deutsch_score) %>% 
+  filter(party != "trump") %>% 
+  group_by(party) %>% 
+  summarise(deutsch_score_party = median(deutsch_score, na.rm = T)) %>% 
+  ggplot() +
+  aes(x = reorder(party, deutsch_score_party), 
+      y = deutsch_score_party) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Politiker",
+       fill = "Partei",
+       y = "Relative Häufigkeit von 'Deutsch'") -> p_horde_03
+
+p_horde_03
+
+ggsave(p_horde_03, file = "img/p_horde_03.png",
+       width = 7,
+       height = 4)
+```
+
+
+
+
+## Plot horden scores per party
+
+```{r}
+polits_df %>% 
+  select(screenName, party, horde_score) %>% 
+  filter(party != "trump") %>% 
+  group_by(party) %>% 
+  summarise(horde_score_party = median(horde_score, na.rm = T)) %>% 
+  ggplot() +
+  aes(x = reorder(party, horde_score_party), 
+      y = horde_score_party) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Politiker",
+       fill = "Partei",
+       y = "Relative Häufigkeit von Horden-Wörtern") -> p_horde_04
+
+p_horde_04
+
+ggsave(p_horde_04, file = "img/p_horde_04.png",
+       width = 7,
+       height = 4)
+```

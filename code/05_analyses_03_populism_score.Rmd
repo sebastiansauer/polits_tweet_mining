@@ -50,6 +50,7 @@ load("../data_polit_twitter/tweets_df.Rdata")
 load("../data_polit_twitter/tweet_tokens.Rdata")
 load("../data_polit_twitter/polits_df.Rdata")
 load("data/party_pal.Rdata")
+load("../data_polit_twitter/party_pop_scores.Rdata")
 
 ```
 

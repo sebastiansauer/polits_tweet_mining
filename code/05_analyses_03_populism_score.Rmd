@@ -297,13 +297,14 @@ polits_df %>%
   coord_flip() +
   labs(x = "Partei",
        y = "Populismuswert",
-       fill = "Partei",
-       caption = "Median über alle Populismus-Indikatoren") +
+       color = "Partei",
+       caption = "dargestellt sind Mediane über alle Populismus-Indikatoren") +
   scale_color_manual(values = party_pal) -> p_party_pop_scores_individual
 
 p_party_pop_scores_individual
 
-ggsave(p_party_pop_scores, file = "img/p_party_pop_scores_individual.pdf")
+ggsave(p_party_pop_scores_individual, file = "img/p_party_pop_scores_individual.pdf")
+ggsave(p_party_pop_scores_individual, file = "img/p_party_pop_scores_individual.png")
 
 ```
 

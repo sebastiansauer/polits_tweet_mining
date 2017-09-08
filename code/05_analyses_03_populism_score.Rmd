@@ -271,8 +271,42 @@ p_party_pop_scores
 
 ggsave(p_party_pop_scores, file = "img/party_pop_scores.pdf")
 
+```
+
+## Plot individual accounts for each party
+
+```{r}
+polits_df %>% 
+   group_by(party) %>% 
+  filter( party != "fraktionslos") %>% 
+  summarise(pop_z_md = median(pop_z_md, na.rm = TRUE)) -> parties_pop_z_md
+```
+
+
+```{r}
+polits_df %>% 
+  group_by(party, screenName) %>% 
+  filter( party != "fraktionslos") %>% 
+  summarise(pop_z_md = median(pop_z_md, na.rm = TRUE)) %>% 
+  ggplot +
+  geom_point(data = parties_pop_z_md, 
+             aes(x = reorder(party, pop_z_md), y = pop_z_md), 
+             shape = 5, size = 5, color = "grey20") +
+  # aes(x = reorder(party, pop_z_md), y = pop_z_md, color = party) +
+  geom_jitter(width = .1, aes(x = party, y = pop_z_md, color = party)) +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Populismuswert",
+       fill = "Partei",
+       caption = "Median über alle Populismus-Indikatoren") +
+  scale_color_manual(values = party_pal) -> p_party_pop_scores_individual
+
+p_party_pop_scores_individual
+
+ggsave(p_party_pop_scores, file = "img/p_party_pop_scores_individual.pdf")
 
 ```
+
 
 
 ## Compute pop scores by party, details

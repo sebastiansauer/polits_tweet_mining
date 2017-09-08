@@ -220,3 +220,24 @@ ggsave(p_horde_04, file = "img/p_horde_04.png",
        width = 7,
        height = 4)
 ```
+
+
+
+# Correlation of Horde score, populism score, and deutsch score
+
+
+```{r}
+library(GGally)
+polits_df %>% 
+  select(screenName, party, horde_score, deutsch_score, pop_z_md) %>% 
+  filter(party != "trump") %>% 
+  rename(Name = screenName,
+         Partei = party,
+         Horden_Score = horde_score,
+         Deutsch_Score = deutsch_score,
+         Populismus_Score = pop_z_md) %>% 
+  ggpairs(data = .,
+          columns = 3:5)
+```
+
+No real association, it appears.

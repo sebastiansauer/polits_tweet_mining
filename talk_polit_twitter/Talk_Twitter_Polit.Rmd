@@ -1,7 +1,6 @@
 ---
 title: |
-  |  Wie populistisch tweeten unsere Politiker 
-  |  (im Vergleich zu Donal Trump)?
+  |  Wie populistisch tweeten unsere Politiker?^[Folien/Infos hier: <osf.io/wv4fx>]
 subtitle: "Twitter-Text-Mining"
 author: "Sebastian Sauer, FOM Hochschule, Nürnberg"
 date: "AOW 2017"
@@ -51,7 +50,18 @@ library(pander)
 
 ## Poppers Theorie der "Urhorde" als Rahmen für Populismus
 
+\vspace{1.5cm}
+
+- Popper [@offges]:  
+  *Stammesgesellschaft*  $\rightarrow$  *Individuumsgesellschaft*
+
+
+
+
+## Poppers Theorie der "Urhorde" als Rahmen für Populismus (Details)
+
 - Popper [@offges]: Entwicklung von *Stammesgesellschaft* zur *Individuumsgesellschaft*
+
 - **Stammesgesellschaft**: Heldenepos, Heroen, Führerpersönlichkeiten, Ehre, Gewissheit über richtig/falsch, herrschende Kaste, zementierte Gesellschaftsstrukturen, "unser Boden", "unsere Blutsbande", "unser Stamm", Individuum als Teil des Stammes, Entwicklung kaum möglich, klare Regeln, klare Strafen, "wir gegen die", Stärke als Wert, Kampfesmentalität, totalitär, starke Kohäsionskräfte, Feinde sind nötig und werden gefunden
 
 - **Individuumsgesellschaft**: Hinterfragen, Kritisieren, Ungewissheit, Zweifel, "Dahintreiben", Individuum als Individuum, schnelle Entwicklung möglich, Idee der Mündigkeit und Eigenverantwortlichkeit, Einsamkeit, humane Gesellschaft möglich
@@ -79,9 +89,9 @@ library(pander)
 
 - Unterscheiden sich deutsche Parteien in ihrer Neigung zum Populismus?
 
-- Ist die AfD besonders populistisch?
+- Tweetet die AfD besonders populistisch?
 
-- Ähneln sich deutsche Parteien (und besonders die AfD) in ihrer Kommunikationsart Donald Trump?
+- Tweetet Trump am populistischsten?
 
 
 # Methode: Twitter-Analyse
@@ -89,7 +99,7 @@ library(pander)
 
 ## Operationalisierung: Tweets
 
-- Kommunikationsart der Parteien/Parteirepräsentanten durch Tweets (Twitter Kurznachrichten) erfasst
+- Kommunikationsart der Parteien/Parteirepräsentanten durch Tweets erfasst
 
 - Ermöglicht 
     - die Verarbeitung großer Datenmengen
@@ -97,7 +107,7 @@ library(pander)
     - hohe Reproduzierbarkeit
 
 
-## Populismus-Score (PopScore; $\pi$)
+## Populismus-Score $\pi$
 
 - Ungewichteter Median von z-Werten
 
@@ -118,10 +128,9 @@ pop_vars_de %>% as.character
 
     
 
-## Hypothese
+## Hypothese^[präregistriert; Datenerhebung läuft bis Ende 2017: <https://osf.io/bwszu>]
 
 - Populismus-Reihenfolge: Trump > AfD > *sonstige*  
-- präregistriert^[Datenerhebung läuft bis Ende 2017]: <https://osf.io/wv4fx/>  
 
 
 # Daten
@@ -143,9 +152,10 @@ pop_vars_de %>% as.character
 
 ## Zentrale Analyse-Schritte
 
-1. Pro Politiker die Populismus-Indikatoren ($I$) berechnen
-2. Umpolen und z-Werte berechnen für $I$
-3. Auf Partein aggregieren
+1. Pro Politiker die Populismus-Indikatoren ($I_n$ $n \in 1..8$) berechnen
+2. Ggf. umpolen und z-Werte berechnen für $I_n$
+3. Gesamt-Populismuswert $\pi$ pro Person berechnen (Median)
+3. Auf Partei-Ebene aggregieren (Median)
 
 
 ## Accounts^[Stand: August 2017] der Politiker
@@ -230,7 +240,10 @@ top_1_pop_account_sample_tweets %>%
 ```
 
 
-## 
+## "Horden-Score"^[basierend auf dieser Liste populistischer Wörter: <https://osf.io/b6ge7/>]
+
+![](../img/p_horde_04.png)
+
 
 # Diskussion: Interessante Methode, viel Raum zur Verbesserung
 
@@ -246,27 +259,31 @@ top_1_pop_account_sample_tweets %>%
 
 ## Schwächen
 
-- Indikatoren sind subjektiv gewählt
+- Indikatorenauswahl subjektiv?
 - Weitere Analysen möglich/sinnvoll
-- Datenprojektmanagement optimierbar
+- Repräsentativität (Twitter? Auswahl der Politiker?)
 
 # Danke
 
 ## Kontakt
 
 **Sebastian Sauer**  
-sebastian.sauer@fom.de
+\vspace{1cm}
+Mail: sebastian.sauer@fom.de
 
-twitter: [sauer_sebastian](https://twitter.com/sauer_sebastian?lang=en), [psy_pol](https://twitter.com/psy_pol)   
-blog: https://sebastiansauer.github.io  
+twitter:   
 
-Folien: osf  
-Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://github.com/sebastiansauer/polits_tweet_mining> 
+  - [sauer_sebastian](https://twitter.com/sauer_sebastian?lang=en)  
+  - [psy_pol](https://twitter.com/psy_pol)    
+  
+blogs: 
+
+  - https://sebastiansauer.github.io  
+  - https://sebastiansauer.github.io/psy_pol/ 
+
+Folien: <https://osf.io/wv4fx>    
+Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://osf.io/wv4fx>
 
 
-## sessionInfo()
-
-- R-Pakete: github
-- sessionInfo: github
 
 ## Literatur

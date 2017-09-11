@@ -1,6 +1,5 @@
 ---
-title: |
-  |  Wie populistisch tweeten unsere Politiker?^[Folien/Infos hier: <osf.io/wv4fx>]
+title:  Wie populistisch tweeten unsere Politiker?
 subtitle: "Twitter-Text-Mining"
 author: "Sebastian Sauer, FOM Hochschule, Nürnberg"
 date: "AOW 2017"
@@ -9,6 +8,8 @@ urlcolor: blue
 output:
   beamer_presentation:
     fig_caption: no
+    includes:
+      in_header: /Users/sebastiansauer/documents/Vorlagen/pandoc/FOM_stylesheet.tex
 bibliography: 
   - "bib.bib"
 lang: de-De
@@ -87,9 +88,7 @@ library(pander)
 
 ## Forschungsfragen
 
-- Unterscheiden sich deutsche Parteien in ihrer Neigung zum Populismus?
-
-- Tweetet die AfD besonders populistisch?
+- (Wie) unterscheiden sich deutsche Parteien in ihrer Neigung zum Populismus (in ihren Tweets)?
 
 - Tweetet Trump am populistischsten?
 
@@ -181,7 +180,7 @@ pop_vars_de %>% as.character
 
 
 ## Trump twittert wie verrückt 
-Tweets pro Accounts pro Tag
+
 
 ![](../img/p_tweets_day_party.pdf)
 
@@ -189,7 +188,7 @@ Tweets pro Accounts pro Tag
 
 ## Grüne: Am meisten Gezwitscher; CSU: am wenigsten
 
-Tweets pro Tag (Median)
+
 
 ![](../img/p_tweets_day_party_md_no_trump.pdf)
 
@@ -198,25 +197,24 @@ Tweets pro Tag (Median)
 
 ## Trumps Populismus-Score ist am größten 
 
-z-Werte
 
-![](../img/p_party_pop_scores_2.pdf)
+
+![](../img/p_party_pop_scores_boxplot.pdf)
 
 ## Ohne Trump: Union/SPD am wenigsten populistisch
 
-z-Werte
 
-![](../img/p_party_pop_scores_wo_trump.pdf)
+
+![](../img/p_pop_geom_boxplot_wo_trump.pdf)
 
 ## AfD und Linke ähneln sich
 
 ... CSU, CDU und SPD auch
 
-![](../img/p_party_pop_scores_details_no_trump.pdf)
+![](../img/p_party_pop_scores_details_boxplot.pdf)
 
 ## "Top-10 der Populisten"^[cum grano salis] - zumeist von Der Linken
 
-z-Werte
 
 ![](../img/p_pop_screenName.pdf)
 
@@ -242,7 +240,13 @@ top_1_pop_account_sample_tweets %>%
 
 ## "Horden-Score"^[basierend auf dieser Liste populistischer Wörter: <https://osf.io/b6ge7/>]
 
-![](../img/p_horde_04.png)
+![](../img/p_horde_04_boxplot.pdf)
+
+
+## AfD und Union sprechen am häufigsten von 'deutsch*'
+
+![](../img/p_horde_03_boxplot_deutsch.pdf)
+
 
 
 # Diskussion: Interessante Methode, viel Raum zur Verbesserung
@@ -268,7 +272,6 @@ top_1_pop_account_sample_tweets %>%
 ## Kontakt
 
 **Sebastian Sauer**  
-\vspace{1cm}
 Mail: sebastian.sauer@fom.de
 
 twitter:   
@@ -282,7 +285,7 @@ blogs:
   - https://sebastiansauer.github.io/psy_pol/ 
 
 Folien: <https://osf.io/wv4fx>    
-Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://osf.io/wv4fx>
+Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://osf.io/afndc/>
 
 
 

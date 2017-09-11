@@ -86,8 +86,13 @@ horde_tokens %>%
   group_by(screenName) %>% 
   summarise(n_horde = n()) -> horde_accounts
 
+
+if ("n_horde" %in% names(polits_df)){
+  cat("'n_horde' is already a column in 'polits_df'. Do not join again.")
+} else {
 polits_df %>% 
   left_join(horde_accounts, by = "screenName") -> polits_df
+  cat("Column'n_horde' was joined to 'polits_df'.\n")}
 ```
 
 
@@ -96,6 +101,56 @@ polits_df %>%
 ```{r}
 polits_df %>% 
   mutate(horde_score = (n_horde / n) * 100) -> polits_df
+
+```
+
+
+## Count the token "deutsch" in tweet_tokens
+
+
+```{r}
+tweet_tokens %>% 
+  filter(str_detect(token, "deut\\w+")) %>% 
+  count(screenName, sort = TRUE) %>% 
+  rename(n_deutsch = n) -> deutsch_screenName
+  
+
+```
+
+
+## Join with polits_df
+
+```{r}
+
+if ("n_deutsch" %in% names(polits_df)){
+  cat("Column 'n_deutsch' is already present in 'polits_df'. Abort Joining.")
+} else {
+polits_df %>% 
+  left_join(deutsch_screenName) %>% 
+  mutate(deutsch_score = n_deutsch / n) -> polits_df 
+  cat("Column 'n_deutsch' was joined to polits_df\n") }
+
+if ("Deutsch_score" in names(polits_df)){
+  polits_df %>% 
+  rename(deutsch_score = Deutsch_score) -> polits_df}
+```
+
+# No more data manipulation below this line!
+
+(In this file)
+
+
+# Save data
+
+```{r}
+save(polits_df, file = "../data_polit_twitter/polits_df.Rdata")
+
+```
+
+
+## Plot Horden-Score
+
+```{r}
 
 polits_df %>% 
   select(screenName, party, horde_score) %>% 
@@ -117,31 +172,7 @@ ggsave(p_horde_01, file = "img/p_horde_01.png",
        height = 4)
 ```
 
-Quite strange, the AfD does not appear. Maybe it is enlightening to show how often - and by whom - the word "deutsch" or "deutschland" was tweeted.
 
-## Count the token "deutsch" in tweet_tokens
-
-```{r}
-tweet_tokens %>% 
-  filter(str_detect(token, "deut\\w+")) %>% 
-  count(screenName, sort = TRUE) %>% 
-  rename(n_deutsch = n) -> deutsch_screenName
-  
-
-
-```
-
-
-## Join with polits_df
-
-```{r}
-polits_df %>% 
-  left_join(deutsch_screenName) %>% 
-  mutate(deutsch_score = n_deutsch / n) -> polits_df
-
-polits_df %>% 
-  rename(deutsch_score = Deutsch_score) -> polits_df
-```
 
 
 ## Plot Deutsch-Scores
@@ -170,7 +201,7 @@ ggsave(p_horde_02, file = "img/p_horde_02.png",
 
 ## Plot deutsch score per party
 
-```{r}
+```{r p_horde_03_geom_col}
 polits_df %>% 
   select(screenName, party, deutsch_score) %>% 
   filter(party != "trump") %>% 
@@ -194,6 +225,30 @@ ggsave(p_horde_03, file = "img/p_horde_03.png",
 ```
 
 
+```{r p_horde_03_geom_col_deutsch_boxplot}
+polits_df %>% 
+  select(screenName, party, deutsch_score) %>% 
+  group_by(party) %>% 
+  mutate(deutsch_score_party = median(deutsch_score, na.rm = T)) %>% 
+  ungroup %>% 
+  filter(party != "trump") %>% 
+  ggplot() +
+  aes(x = reorder(party, deutsch_score_party), 
+      y = deutsch_score) +
+  geom_boxplot(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Politiker",
+       fill = "Partei",
+       y = "Relative Häufigkeit von 'Deutsch'") -> p_horde_03_boxplot_deutsch
+
+p_horde_03_boxplot_deutsch
+
+ggsave(p_horde_03_boxplot_deutsch, file = "img/p_horde_03_boxplot_deutsch.png",
+       width = 7,
+       height = 4)
+ggsave(p_horde_03_boxplot, file = "img/p_horde_03_boxplot_deutsch.pdf")
+```
 
 
 ## Plot horden scores per party
@@ -201,24 +256,29 @@ ggsave(p_horde_03, file = "img/p_horde_03.png",
 ```{r}
 polits_df %>% 
   select(screenName, party, horde_score) %>% 
-  filter(party != "trump") %>% 
   group_by(party) %>% 
-  summarise(horde_score_party = median(horde_score, na.rm = T)) %>% 
+  mutate(horde_score_party = median(horde_score, na.rm = T)) %>% 
+  ungroup %>% 
+  filter(party != "trump") %>% 
   ggplot() +
   aes(x = reorder(party, horde_score_party), 
-      y = horde_score_party) +
-  geom_col(aes(fill = party)) +
+      y = horde_score) +
+  geom_boxplot(aes(fill = party)) +
   coord_flip() +
   scale_fill_manual(values = party_pal) +
   labs(x = "Politiker",
        fill = "Partei",
-       y = "Relative Häufigkeit von Horden-Wörtern") -> p_horde_04
+       y = "Relative Häufigkeit von Horden-Wörtern") -> p_horde_04_boxplot
 
-p_horde_04
+p_horde_04_boxplot
 
-ggsave(p_horde_04, file = "img/p_horde_04.png",
+ggsave(p_horde_04_boxplot, file = "img/p_horde_04_boxplot.png",
        width = 7,
-       height = 4)
+       height = 4,
+       dpi = 800)
+
+ggsave(p_horde_04_boxplot, file = "img/p_horde_04_boxplot.pdf")
+
 ```
 
 

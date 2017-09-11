@@ -101,6 +101,16 @@ tweets_df %>%
 
 ## Join with polits df 
 
+First check, if not already joint
+
+```{r}
+populism_scores %>% 
+  select(which(names(populism_scores) %in% names(tweets_df))) %>% 
+  names
+
+```
+
+
 
 ```{r eval = FALSE}
 populism_scores %>% 
@@ -144,13 +154,20 @@ tweets_df %>%
          text = str_replace(text, "@\\S+", "")) %>%  # remove mentions
   #mutate(token = str_replace(text, " ", "")) %>% 
   #filter(str_detect(text, "[[:upper:]]{4,}")) %>% 
-  mutate(cap_count = str_count(text,  "[[:upper:]]{4,}")) %>% 
-  select(-party) %>% 
+  mutate(cap_count = str_count(text, "[[:upper:]]{4,}")) %>% 
+  dplyr::select(-party) %>% 
   group_by(screenName) %>% 
-  summarise(cap_count = sum(cap_count, na.rm = T)) %>% 
-  full_join(polits_df, by = "screenName") %>%  
+  summarise(cap_count = sum(cap_count, na.rm = T)) -> screenName_cap_count
+
+select(polits_df, -cap_count) -> polits_df  
+
+if ("cap_count" %in% names(polits_df)) {
+  cat("column already present. Do not join again")
+} else {
+screenName_cap_count %>% 
+full_join(polits_df, by = "screenName") %>%  
   mutate(cap_prop = cap_count / word_count) %>% 
-  ungroup -> polits_df
+  ungroup -> polits_df }
 
 
 ```
@@ -172,7 +189,7 @@ polits_df %>%
          adj_adv_quote = adjx_n / adv_n) -> polits_df
 
 
-# polits_df %>% ungroup -> polits_df
+polits_df %>% ungroup -> polits_df
 
 ```
 
@@ -250,9 +267,38 @@ polits_df %>%
 
 
 
-## Plot pop scores by party, total score
+```{r comp_party_pop_z}
+polits_df %>% 
+  group_by(party) %>% 
+  summarise(pop_z_md_party = median(pop_z_md, na.rm = TRUE)) %>% 
+  left_join(polits_df, by = "party") -> polits_df
+```
+
+
+
+# No more data manipulation below this line!
+
+(In this file)
+
+Data manipulation is now finished. `polits_df` is not changed by subsequent analysis of populisms computation
+
+
+# Save data
 
 ```{r}
+# save(populism_scores, file = "../data_polit_twitter/populism_scores.Rdata")
+save(polits_df, file = "../data_polit_twitter/polits_df.Rdata")
+save(party_pop_scores, file = "../data_polit_twitter/party_pop_scores.Rdata")
+```
+
+
+# Plot populismus
+
+
+## Plot pop scores by party, total score
+
+
+```{r p_pop_geom_col}
 polits_df %>% 
   group_by(party) %>% 
   filter( party != "fraktionslos") %>% 
@@ -273,6 +319,53 @@ ggsave(p_party_pop_scores, file = "img/party_pop_scores.pdf")
 
 ```
 
+
+
+```{r p_pop_geom_boxplot}
+polits_df %>% 
+  group_by(party) %>% 
+  filter( party != "fraktionslos") %>% 
+  ggplot +
+  aes(x = reorder(party, pop_z_md_party), y = pop_z_md, fill = party) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Populismuswert (z-Wert)",
+       fill = "Partei",
+       caption = "Median über alle Populismus-Indikatoren") +
+  scale_fill_manual(values = party_pal) -> p_party_pop_scores_boxplot
+
+p_party_pop_scores_boxplot
+
+ggsave(p_party_pop_scores_boxplot, file = "img/p_party_pop_scores_boxplot.pdf")
+
+```
+
+
+
+```{r p_pop_geom_boxplot_wo_trump}
+polits_df %>% 
+  group_by(party) %>% 
+  filter(!(party %in% c("fraktionslos", "trump"))) %>% 
+  ggplot +
+  aes(x = reorder(party, pop_z_md_party), y = pop_z_md, fill = party) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Populismuswert (z-Wert)",
+       fill = "Partei",
+       caption = "Median über alle Populismus-Indikatoren") +
+  scale_fill_manual(values = party_pal) -> p_pop_geom_boxplot_wo_trump
+
+p_pop_geom_boxplot_wo_trump
+
+ggsave(p_pop_geom_boxplot_wo_trump, file = "img/p_pop_geom_boxplot_wo_trump.pdf")
+
+```
+
+
+
+
 ## Plot individual accounts for each party
 
 ```{r}
@@ -283,7 +376,7 @@ polits_df %>%
 ```
 
 
-```{r}
+```{r p_pop_points}
 polits_df %>% 
   group_by(party, screenName) %>% 
   filter( party != "fraktionslos") %>% 
@@ -296,7 +389,7 @@ polits_df %>%
   geom_jitter(width = .1, aes(x = party, y = pop_z_md, color = party)) +
   coord_flip() +
   labs(x = "Partei",
-       y = "Populismuswert",
+       y = "Populismuswert (z-Wert)",
        color = "Partei",
        caption = "dargestellt sind Mediane über alle Populismus-Indikatoren") +
   scale_color_manual(values = party_pal) -> p_party_pop_scores_individual
@@ -409,7 +502,8 @@ ggsave(p_party_pop_scores_wo_trump, file = "img/p_party_pop_scores_wo_trump.pdf"
 ## String of pop vars in German
 
 ```{r}
-pop_vars_de_median <- c(word_length_md_comp_z_median = "Wortkürze",
+pop_vars_de_median <- c(
+                 word_length_md_comp_z_median = "Wortkürze",
                  neg_words_ratio_z_median = "Verhältnis negativer/positiver Wörter",
                  neg_prop_z_median = "Anteil negativer Wörter",
                  emo_words_prop_z_median =  "Anteil emotionaler Wörter",
@@ -432,10 +526,10 @@ pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
 
 
 
-## Plot populism indicators per party
+## Plot populism indicators per party (profile of indicators)
 
 
-```{r}
+```{r p_party_pop_scores_details}
 party_pop_scores %>% 
   select(contains("median"), party) %>% 
   gather(key = Indikator, value = z_Wert, -party) %>% 
@@ -459,8 +553,66 @@ ggsave(p_party_pop_scores_details,
 ```
 
 
+```{r p_party_pop_scores_details_boxplot}
+polits_df %>% 
+  select(party, screenName,
+         word_length_md_comp_z,
+         emo_score_neg_z,
+         emo_abs_score_z,
+         neg_words_ratio_z,
+         cap_prop_z,
+         neg_prop_z,
+         adj_adv_quote_z,
+         emo_words_prop_z,
+         ) %>% 
+ gather(key = Indikator, value = z_Wert, -c(screenName, party))  %>% 
+ ggplot +
+  aes(x = Indikator, y = z_Wert, fill = party) +
+  geom_boxplot() +
+  facet_wrap(~party) +
+  scale_fill_manual(values = party_pal) + 
+  scale_x_discrete(labels = pop_vars_de) +
+  labs(y = "z-Wert") +
+  coord_flip() -> p_party_pop_scores_details_boxplot
+
+p_party_pop_scores_details_boxplot
+
+ggsave(p_party_pop_scores_details_boxplot, file = "img/p_party_pop_scores_details_boxplot.pdf")
+
+```
+
+
 
 ## Plot populism indicators per party without Trump
+
+
+```{r p_party_pop_scores_details_boxplot}
+polits_df %>% 
+  filter(party != "trump") %>% 
+  select(party, screenName,
+         word_length_md_comp_z,
+         emo_score_neg_z,
+         emo_abs_score_z,
+         neg_words_ratio_z,
+         cap_prop_z,
+         neg_prop_z,
+         adj_adv_quote_z,
+         emo_words_prop_z,
+         ) %>% 
+ gather(key = Indikator, value = z_Wert, -c(screenName, party))  %>% 
+ ggplot +
+  aes(x = Indikator, y = z_Wert, fill = party) +
+  geom_boxplot() +
+  facet_wrap(~party) +
+  scale_fill_manual(values = party_pal) + 
+  scale_x_discrete(labels = pop_vars_de) +
+  coord_flip() -> p_party_pop_scores_details_boxplot_no_trump
+
+p_party_pop_scores_details_boxplot_no_trump
+
+ggsave(p_party_pop_scores_details_boxplot_no_trump, file = "img/p_party_pop_scores_details_boxplot_no_trump.pdf")
+
+```
 
 
 ```{r}
@@ -496,13 +648,14 @@ polits_df %>%
   filter(!is.na(party)) %>% 
   top_n(10, pop_z_md) %>% 
   ggplot +
-  aes(x = reorder(screenName, pop_z_md), y = pop_z_md, fill = party) %>% 
-  geom_col() +
+  aes(x = reorder(screenName, pop_z_md), 
+      y = pop_z_md, color = party) %>% 
+  geom_point(size = 7) +
   coord_flip() +
-  scale_fill_manual(values = party_pal) +
+  scale_color_manual(values = party_pal) +
   labs(x = "Name",
        y = "Populismuswert",
-       fill = "Partei") -> p_pop_screenName
+       color = "Partei") -> p_pop_screenName
 
 
 p_pop_screenName
@@ -523,7 +676,7 @@ polits_df %>%
   gather(Indikator, Wert) %>% 
   ggplot +
   aes(x = reorder(Indikator, Wert), y = Wert) +
-  geom_col() +
+  geom_point(size = 5) +
   coord_flip() +
   scale_x_discrete(labels = pop_vars_de) +
   labs(x = "Indikator", y = "Z-Wert") -> p_most_pop_screenName
@@ -548,12 +701,4 @@ save(top_1_pop_account_sample_tweets,
      file = "../data_polit_twitter/top_1_pop_account_sample_tweets.Rdata")
 ```
 
-
-# Save data
-
-```{r}
-# save(populism_scores, file = "../data_polit_twitter/populism_scores.Rdata")
-save(polits_df, file = "../data_polit_twitter/polits_df.Rdata")
-save(party_pop_scores, file = "../data_polit_twitter/party_pop_scores.Rdata")
-```
 

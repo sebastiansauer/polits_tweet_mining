@@ -1,6 +1,6 @@
 ---
 title:  Wie populistisch tweeten unsere Politiker?
-subtitle: "Twitter-Text-Mining"
+subtitle: "Twitter-Text-Mining als Organisationsdiagnose?"
 author: "Sebastian Sauer, FOM Hochschule, Nürnberg"
 date: "AOW 2017"
 linkcolor: blue
@@ -255,10 +255,9 @@ top_1_pop_account_sample_tweets %>%
 ## Stärken
 
 - Neue, bisher wenig genutzte Methode
-- Großer Datensatz (~6 Mio Wörter)
-- Hohe Objektivität (in Teilen)
-- Hohe Reproduzierbarkeit
-- Wichtiges Thema
+- objektiv (in Teilen)
+- reproduzierbar
+- automatisierbar
 
 
 ## Schwächen
@@ -266,6 +265,8 @@ top_1_pop_account_sample_tweets %>%
 - Indikatorenauswahl subjektiv?
 - Weitere Analysen möglich/sinnvoll
 - Repräsentativität (Twitter? Auswahl der Politiker?)
+- Datenschutz?
+- Kriteriumsvalidität? Abgleich mit anderen Kriterien steht aus
 
 # Danke
 

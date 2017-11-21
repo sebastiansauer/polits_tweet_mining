@@ -1,6 +1,8 @@
 ---
-title:  Wie populistisch tweeten unsere Politiker?
-subtitle: "Twitter-Text-Mining als Organisationsdiagnose?"
+title:  "Wie populistisch tweeten unsere Politiker?"
+subtitle: |
+    | Twitter-Text-Mining als Organisationsdiagnose
+    | Folien, Daten, Syntax: <https://osf.io/afndc/>
 author: "Sebastian Sauer, FOM Hochschule, Nürnberg"
 date: "AOW 2017"
 linkcolor: blue
@@ -46,6 +48,14 @@ library(pander)
 ```
 
 
+
+
+## Forschungsfrage
+
+- Text-Mining als Methode der Organisationsdiagnose?   
+    - Tweets politischer Parteien  
+    - Fokus auf Methoden der Textanalyse
+
 # Theorie: Poppers Urhorde
 
 
@@ -59,38 +69,18 @@ library(pander)
 
 
 
-## Poppers Theorie der "Urhorde" als Rahmen für Populismus (Details)
-
-- Popper [@offges]: Entwicklung von *Stammesgesellschaft* zur *Individuumsgesellschaft*
-
-- **Stammesgesellschaft**: Heldenepos, Heroen, Führerpersönlichkeiten, Ehre, Gewissheit über richtig/falsch, herrschende Kaste, zementierte Gesellschaftsstrukturen, "unser Boden", "unsere Blutsbande", "unser Stamm", Individuum als Teil des Stammes, Entwicklung kaum möglich, klare Regeln, klare Strafen, "wir gegen die", Stärke als Wert, Kampfesmentalität, totalitär, starke Kohäsionskräfte, Feinde sind nötig und werden gefunden
-
-- **Individuumsgesellschaft**: Hinterfragen, Kritisieren, Ungewissheit, Zweifel, "Dahintreiben", Individuum als Individuum, schnelle Entwicklung möglich, Idee der Mündigkeit und Eigenverantwortlichkeit, Einsamkeit, humane Gesellschaft möglich
-
-
 ## Populismus als Sehnsucht nach der Sicherheit der Stammesgesellschaft 
 
-- Menschen leiden (individuell unterschiedlich) am Verlust der Gewissheiten der Stammesgesellschaft
+- Menschen leiden am Verlust der Gewissheiten der Stammesgesellschaft
 
-- Individuumsgesellschaft von Unsicherheit, Möglichkeiten und Nichtwissen geprägt -- Gefühl des "Dahintreibens" resultiert
+- Individuumsgesellschaft von Unsicherheit, Möglichkeiten und Nichtwissen geprägt 
+    - Gefühl des "Dahintreibens"
 
-- Populisten verheißen die Rückkehr zur Stammesgesellschaft
+- **Populismus: Verheißung der Rückkehr zur Stammesgesellschaft**
 
-
-## Populismus heute -- im Aufwind?
-
-- Zu Zeiten von *Umbrüchen* steigt das Leiden an der Individuumsgesellschaft; Stammesgesellschaft wird attraktiver
-
-- Zu Zeiten des *Vormarschs der Individuumsgesellschaft* steigt das Leiden an ihr; Stammesgesellschaft wird attraktiver
-
-- Zur Zeiten von *Krisen* steigt das Leiden an der Ungewissheit; der Wunsch nach Gewissheit steigt, die Stammesgesellschaft wird attraktiver
+- Krisen und Umbrüche erhöhen die Sehnsucht nach der (Sicherheit der) Stammesgesellschaft
 
 
-## Forschungsfragen
-
-- (Wie) unterscheiden sich deutsche Parteien in ihrer Neigung zum Populismus (in ihren Tweets)?
-
-- Tweetet Trump am populistischsten?
 
 
 # Methode: Twitter-Analyse
@@ -108,7 +98,7 @@ library(pander)
 
 ## Populismus-Score $\pi$
 
-- Ungewichteter Median von z-Werten
+Ungewichteter Median von z-Werten von 8 Indikatoren
 
 ```{r echo = FALSE}
 pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
@@ -268,7 +258,11 @@ top_1_pop_account_sample_tweets %>%
 - Datenschutz?
 - Kriteriumsvalidität? Abgleich mit anderen Kriterien steht aus
 
-# Danke
+
+## Literatur
+
+
+<div id="refs"></div>
 
 ## Kontakt
 
@@ -285,9 +279,39 @@ blogs:
   - https://sebastiansauer.github.io  
   - https://sebastiansauer.github.io/psy_pol/ 
 
-Folien: <https://osf.io/wv4fx>    
-Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://osf.io/afndc/>
+Folien, Daten^[dehydriert aus rechtlichen Gründen] und R-Code: <https://osf.io/afndc/>
 
 
 
-## Literatur
+
+
+# Anhang
+
+
+
+## Forschungsfragen - Detail
+
+- (Wie) unterscheiden sich deutsche Parteien in ihrer Neigung zum Populismus (in ihren Tweets)?
+
+- Tweetet Trump am populistischsten?
+
+
+
+## Poppers Theorie der "Urhorde" als Rahmen für Populismus (Details)
+
+- Popper [@offges]: Entwicklung von *Stammesgesellschaft* zur *Individuumsgesellschaft*
+
+- **Stammesgesellschaft**: Heldenepos, Heroen, Führerpersönlichkeiten, Ehre, Gewissheit über richtig/falsch, herrschende Kaste, zementierte Gesellschaftsstrukturen, "unser Boden", "unsere Blutsbande", "unser Stamm", Individuum als Teil des Stammes, Entwicklung kaum möglich, klare Regeln, klare Strafen, "wir gegen die", Stärke als Wert, Kampfesmentalität, totalitär, starke Kohäsionskräfte, Feinde sind nötig und werden gefunden
+
+- **Individuumsgesellschaft**: Hinterfragen, Kritisieren, Ungewissheit, Zweifel, "Dahintreiben", Individuum als Individuum, schnelle Entwicklung möglich, Idee der Mündigkeit und Eigenverantwortlichkeit, Einsamkeit, humane Gesellschaft möglich
+
+
+## Populismus heute -- im Aufwind?
+
+- Zu Zeiten von *Umbrüchen* steigt das Leiden an der Individuumsgesellschaft; Stammesgesellschaft wird attraktiver
+
+- Zu Zeiten des *Vormarschs der Individuumsgesellschaft* steigt das Leiden an ihr; Stammesgesellschaft wird attraktiver
+
+- Zur Zeiten von *Krisen* steigt das Leiden an der Ungewissheit; der Wunsch nach Gewissheit steigt, die Stammesgesellschaft wird attraktiver
+
+

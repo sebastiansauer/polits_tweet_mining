@@ -1,0 +1,354 @@
+---
+title: "05_analyses_05_emo_score"
+author: "Sebastian Sauer"
+date: "15 9 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+
+opts_knit$set(root.dir = normalizePath('../')) # knitrs takes the folder of the Rmd-file as root.dir, but RStudio in interactive mode takes the project folder as root. Better to align both.
+
+```
+
+
+# Setup
+
+
+First load some libraries.
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(magrittr)
+library(tidytext)
+library(stringr)
+library(viridis)
+library(wordcloud)
+library(SnowballC)
+library(knitr)
+```
+
+
+And the data.
+```{r load-data}
+load("../data_polit_twitter/tweets_df.Rdata")
+load("../data_polit_twitter/tweet_tokens.Rdata")
+load("../data_polit_twitter/polits_df.Rdata")
+load("data/party_pal.Rdata")
+load("../data_polit_twitter/party_pop_scores.Rdata")
+horde <- read_csv("data/hordenlexikon.csv")
+load("../data_polit_twitter/tweet_tokens_sentis.Rdata")
+
+
+```
+
+# Plot emo score - Top 25 politicians
+
+```{r p_top_emo_scores}
+polits_df %>% 
+  select(screenName, party, emo_abs_score_z) %>% 
+  arrange(-emo_abs_score_z) %>% 
+  slice(1:25) %>% 
+  ggplot() +
+  aes(x = reorder(screenName, emo_abs_score_z), 
+      y = emo_abs_score_z) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Politiker",
+       fill = "Partei",
+       y = "Emotionsgehalt (z-Wert)",
+       title = "Die Politiker mit den emotionalsten Tweets:\nbunte Vielfalt der Parteien") -> p_emo_top_25 
+
+p_emo_top_25
+ggsave(p_emo_top_25, file = "img/p_emo_top_25.pdf",
+       width = 8,
+       height = 6)
+
+```
+
+
+
+# Plot emo score - per party
+
+```{r p_emo_per_party}
+polits_df %>% 
+  select(screenName, party, emo_abs_score_z) %>% 
+  group_by(party) %>% 
+  filter(!(party %in% c("trump", "fraktionslos"))) %>% 
+  summarise(emo_abs_score_z = median(emo_abs_score_z, na.rm = T)) %>% 
+  ggplot() +
+  aes(x = reorder(party, emo_abs_score_z), 
+      y = emo_abs_score_z) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Partei",
+       fill = "Partei",
+       y = "Emotionsgehalt (Median über z-Werte der Politiker)",
+       title = "Die Parteien mit den emotionalsten Tweets:\nAfD führt, gefolgt von der Linken. Die CSU ist am nüchternsten") -> p_emo_per_party
+
+p_emo_per_party
+ggsave(p_emo_per_party, file = "img/p_emo_per_party.pdf",
+       width = 8,
+       height = 6)
+ggsave(p_emo_per_party, file = "img/p_emo_per_party.png",
+       width = 8,
+       height = 6)
+
+```
+
+
+
+# Plot frequency of emotional words - per party
+
+```{r p_emo_words_per_party}
+polits_df %>% 
+  select(screenName, party, emo_words_prop_z) %>% 
+  group_by(party) %>% 
+  filter(!(party %in% c("trump", "fraktionslos"))) %>% 
+  summarise(emo_words_prop_z = median(emo_words_prop_z, na.rm = T)) %>% 
+  ggplot() +
+  aes(x = reorder(party, emo_words_prop_z), 
+      y = emo_words_prop_z) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  scale_fill_manual(values = party_pal) +
+  labs(x = "Partei",
+       fill = "Partei",
+       y = "Anteil emotionaler Wörter (Median über z-Werte der Politiker)",
+       title = "Emotionsgehalt der Tweets nach Parteien",
+       caption = "Die FDP verwendet im Vergleich sehr viele emotionale Wörter,\ndie Linke am wenigsten")  -> p_emo_words_per_party
+
+p_emo_words_per_party
+ggsave(p_emo_words_per_party, file = "img/p_emo_words_per_party.pdf",
+       height = 6,
+       width = 8)
+
+```
+
+
+
+
+# Plot intensity of emotional words - top 100
+
+
+```{r top_100_emo_tokens}
+tweet_tokens_sentis %>% 
+  mutate(Wert_abs = abs(Wert)) %>% 
+  arrange(-Wert_abs) %>% 
+  select(token, Wert_abs) %>% 
+  distinct %>% 
+  slice(1:100) %>% 
+  pull(token) -> top_100_emo_tokens
+  
+```
+
+
+```{r p_most_emo_words}
+
+tweet_tokens_sentis %>% 
+  select(screenName, token, Wert, party) %>% 
+  filter(party != "trump") %>% 
+  mutate(Wert_abs = abs(Wert)) %>% 
+  filter(token %in% top_100_emo_tokens) %>% 
+  ggplot +
+  aes(x = reorder(token, Wert_abs), y = Wert_abs, color = party) +
+  geom_jitter(width = .3, height = .3) +
+  coord_flip() +
+  scale_color_manual(values = party_pal) +
+  labs(x = "Wort",
+       y = "Emotionaler Wert",
+       color = "Partei",
+       title = "Die 1% emotionalsten Wörter in den Tweets: gelb dominiert") -> p_most_emo_words
+
+
+p_most_emo_words
+ggsave(p_most_emo_words, file = "img/p_most_emo_words.pdf",
+       width = 11,
+       height = 8)
+
+```
+
+
+
+```{r p_most_emo_words_facets}
+tweet_tokens_sentis %>% 
+  select(screenName, token, Wert, party) %>% 
+  filter(party != "trump") %>% 
+  mutate(Wert_abs = abs(Wert)) %>% 
+  group_by(party) %>% 
+  arrange(-Wert_abs, .by_group = TRUE) %>% 
+  mutate(rank_ = percent_rank(Wert_abs)) %>% 
+  filter(rank_ > .99) %>%  
+  ungroup %>%  
+  ggplot +
+  aes(x = reorder(token, Wert_abs), y = Wert_abs, color = party) +
+  geom_jitter(width = .15, height = .15) +
+  facet_wrap(~party, scales = "free") +
+  coord_flip() +
+  scale_y_continuous(breaks = c(0.8, 0.9, 1)) +
+  scale_color_manual(values = party_pal) +
+  labs(x = "Wort",
+       y = "Emotionaler Wert",
+       color = "Partei",
+       caption = "Die emotional intensiven Wörter werden von allen Parteien ähnlich verwendet",
+       title = "Die 1% emotionalsten Wörter in den Tweets (pro Partei)") -> p_most_emo_words_facets
+
+
+p_most_emo_words_facets
+ggsave(p_most_emo_words_facets, file = "img/p_most_emo_words_facets.pdf",
+       width = 15,
+       height = 10)
+ggsave(p_most_emo_words_facets, file = "img/p_most_emo_words_facets.png",
+       width = 15,
+       height = 10)
+```
+
+
+# Proportion of parties in the 100 most emotional tokens
+In the 100 most emotional tokens, which party has which share?
+
+
+```{r}
+tweet_tokens_sentis %>% 
+  filter(token %in% top_100_emo_tokens) %>% 
+  filter(party != "trump") %>% 
+  select(screenName, party, token, Wert) %>% 
+  count(party) %>% 
+  arrange(n) %>% 
+  ggplot +
+  aes(x = reorder(party, n), y = n, fill = party) +
+  geom_col() +
+  scale_fill_manual(values = party_pal) +
+  coord_flip() +
+  labs(x = "Partei",
+       y = "Anteil an den emotionalsten Wörtern",
+       fill = "Partei")
+```
+
+
+
+# Emotional intensive of tokens in tweets per party
+
+```{r}
+tweet_tokens_sentis %>% 
+  select(screenName, token, Wert, party) %>% 
+  mutate(Wert_abs = abs(Wert)) %>% 
+  filter(party != "trump") %>% 
+  group_by(party) %>% 
+  summarise(Emo_abs_md = mean(Wert_abs),
+            n = n()) %>% 
+  ggplot +
+  aes(x = reorder(party, Emo_abs_md), y = Emo_abs_md, color = party) +
+  geom_point() +
+  coord_flip() +
+  scale_color_manual(values = party_pal)
+```
+
+
+# Difference in most emotional tweets between parties
+
+
+```{r top_100_emo_words_afd}
+tweet_tokens_sentis %>% 
+  select(screenName, token, Wert, party) %>% 
+  mutate(Wert_abs = abs(Wert)) %>% 
+  filter(party == "afd") %>% 
+  arrange(-Wert_abs) %>% 
+  select(token) %>% 
+  distinct %>% 
+  slice(1:100) %>% 
+  pull(token) -> top_100_emo_words_afd
+```
+
+
+
+```{r top_100_emo_words_nonafd}
+tweet_tokens_sentis %>% 
+  select(screenName, token, Wert, party) %>% 
+  mutate(Wert_abs = abs(Wert)) %>% 
+  filter(party != "afd") %>% 
+  arrange(-Wert_abs) %>% 
+  select(token) %>% 
+  distinct %>% 
+  slice(1:100) %>% 
+  pull(token) -> top_100_emo_words_nonafd
+```
+
+
+Words in top list of the AfD but not in the rest of the Parties
+
+```{r}
+setdiff(top_100_emo_words_afd, top_100_emo_words_nonafd) -> afd_unique_top_words
+
+save(afd_unique_top_words, file = "../data_polit_twitter/afd_unique_top_words.Rdata")
+
+
+```
+
+Words that appeared in the top list of the AfD AND as well in the top list of the rest of the parties.
+
+```{r}
+  intersect(top_100_emo_words_afd, top_100_emo_words_nonafd) -> common_words_afd_rest_top_words
+
+
+save(common_words_afd_rest_top_words, file = "../data_polit_twitter/common_words_afd_rest_top_words.Rdata")
+```
+
+
+# Correlation of deutsch-score and emo-score
+
+```{r p_emo_deutsch}
+
+polits_df %>% 
+  ggplot +
+  aes(x = deutsch_score_z, 
+      y = emo_abs_score_z, 
+      color = party) +
+  geom_point() +
+  scale_color_manual(values = party_pal) +
+  labs(x = "Deutsch-Score",
+       y = "Emo-Score",
+       color = "Partei",
+       title = "Zusammenhang von Deutsch-Score und Emo-Score",
+       caption = "Kein Zusammenhang ersichtlich") -> p_emo_deutsch
+
+ggsave(p_emo_deutsch, file =
+         "img/p_emo_deutsch.png",
+       width = 9,
+       height = 5)
+
+```
+
+
+
+```{r p_emo_deutsch_afd_only}
+
+polits_df %>% 
+  filter(party == "afd") %>% 
+  ggplot +
+  aes(x = deutsch_score_z, 
+      y = emo_abs_score_z, 
+      color = party) +
+  geom_point() +
+  scale_color_manual(values = party_pal) +
+  labs(x = "Deutsch-Score",
+       y = "Emo-Score",
+       color = "Partei",
+       title = "Zusammenhang von Deutsch-Score und Emo-Score",
+       caption = "Je emotionaler, desto weniger 'deutsch*'") + 
+  geom_smooth(method = "lm", color = "grey20", se = F) -> p_emo_deutsch_afd_only
+
+p_emo_deutsch_afd_only
+
+ggsave(p_emo_deutsch_afd_only, file =
+         "img/p_emo_deutsch_afd_only.png",
+       width = 8,
+       height = 6)
+
+```

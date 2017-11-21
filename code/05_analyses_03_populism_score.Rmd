@@ -250,7 +250,7 @@ polits_df %>%
 ## Compute summary populism score
 
 
-```{r}
+```{r eight-pop-indidcators}
 polits_df %>% 
   rowwise() %>% 
   mutate(pop_z_md = median(c(word_length_md_comp_z, 
@@ -579,6 +579,13 @@ p_party_pop_scores_details_boxplot
 
 ggsave(p_party_pop_scores_details_boxplot, file = "img/p_party_pop_scores_details_boxplot.pdf")
 
+
+p_party_pop_scores_details_boxplot +
+  scale_y_continuous(limits = c(-2,2)) -> 
+  p_party_pop_scores_details_boxplot_limited
+
+ggsave(p_party_pop_scores_details_boxplot_limited, file = "img/p_party_pop_scores_details_boxplot_limited.pdf")
+
 ```
 
 
@@ -615,7 +622,50 @@ ggsave(p_party_pop_scores_details_boxplot_no_trump, file = "img/p_party_pop_scor
 ```
 
 
-```{r}
+
+```{r p_party_pop_scores_details_no_trump_point_limited_grey}
+polits_df %>% 
+  filter(!party %in% c("trump", "fraktionslos")) %>% 
+  select(party, screenName,
+         word_length_md_comp_z,
+         emo_score_neg_z,
+         emo_abs_score_z,
+         neg_words_ratio_z,
+         cap_prop_z,
+         neg_prop_z,
+         adj_adv_quote_z,
+         emo_words_prop_z,
+         ) %>% 
+ gather(key = Indikator, value = z_Wert, -c(screenName, party))  -> polits_df_long
+
+
+party_pop_scores_md_long %>% 
+  mutate(Indikator = str_replace(Indikator, "_median", "")) -> party_pop_scores_md_long2
+ 
+polits_df_long %>% 
+  ggplot +
+  aes(x = Indikator, y = z_Wert,) +
+  geom_point(color = "grey80", position = "jitter") +
+  facet_wrap(~party, nrow = 1) +
+  scale_color_manual(values = party_pal) + 
+  #scale_x_discrete(labels = pop_vars_de) +
+  scale_y_continuous(limits = c(-1.5,1.5), breaks = c(-1,0,1)) +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  geom_point(data = party_pop_scores_md_long2, aes(color = party), size = 4) +
+  geom_line(data = party_pop_scores_md_long2, aes(color = party), group = 1) -> p_party_pop_scores_details_no_trump_point_limited_grey
+
+
+ggsave("p_party_pop_scores_details_no_trump_point_limited_grey.pdf",
+       width = 8,
+       height =5)
+```
+
+
+
+
+
+```{r p_party_pop_scores_details_no_trump_limited}
 party_pop_scores %>% 
   select(contains("median"), party) %>% 
   filter(party != "trump") %>% 
@@ -632,10 +682,47 @@ party_pop_scores %>%
 
 p_party_pop_scores_details_no_trump
 
+p_party_pop_scores_details_no_trump +
+  scale_y_continuous(limits = c(-2,2)) ->
+  p_party_pop_scores_details_no_trump_limited
+
 ggsave(p_party_pop_scores_details_no_trump, 
        file = "img/p_party_pop_scores_details_no_trump.pdf", 
        width = 7,
        height = 5)
+
+
+ggsave(p_party_pop_scores_details_no_trump_limited, 
+       file = "img/p_party_pop_scores_details_no_trump_limited.pdf", 
+       width = 7,
+       height = 5)
+
+party_pop_scores %>% 
+  select(contains("median"), party) %>% 
+  filter(party != "trump") %>% 
+  gather(key = Indikator, value = z_Wert, -party) -> party_pop_scores_md_long
+ 
+party_pop_scores_md_long 
+  ggplot +
+  aes(x = Indikator, y = z_Wert, color = party) +
+  geom_line(group = 1, color = "grey80") +
+  geom_point(size = 4) +
+  facet_wrap(~party, nrow = 1) +
+  scale_color_manual(values = party_pal) + 
+  labs(caption = 
+         "dargestellt sind Mediane über alle Tweets aller Politiker",
+       y = "z-Wert",
+       color = "Partei") +
+  scale_x_discrete(labels = pop_vars_de_median) +
+  theme(legend.position = "bottom") +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  coord_flip() -> p_party_pop_scores_details_no_trump_point
+
+p_party_pop_scores_details_no_trump_point
+
+ggsave(file = "img/p_party_pop_scores_details_no_trump_point.pdf",
+       width = 7,
+       height = 4)
 
 ```
 
@@ -654,7 +741,7 @@ polits_df %>%
   coord_flip() +
   scale_color_manual(values = party_pal) +
   labs(x = "Name",
-       y = "Populismuswert",
+       y = "Populismuswert (z-Wert)",
        color = "Partei") -> p_pop_screenName
 
 

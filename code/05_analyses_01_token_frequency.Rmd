@@ -242,13 +242,18 @@ tweets_df %>%
   ggplot +
   aes(x = party, y = created, fill = party, color = party) +
   geom_violin() +
+  labs(x = "Partei",
+       y = "Jahr",
+       Fill = "Partei") +
   scale_fill_manual(values = party_pal) +
   scale_color_manual(values = party_pal) +
   coord_flip() -> p_tweets_timeline2
 
 p_tweets_timeline2
 
-ggsave(p_tweets_timeline2, file = "p_tweets_timeline2.pdf")
+ggsave(p_tweets_timeline2, file = "img/p_tweets_timeline2.pdf")
+ggsave(p_tweets_timeline2, file = "img/p_tweets_timeline2.png")
+
 ```
 
 
@@ -458,6 +463,8 @@ p_tweets_day_party_md_no_trump
 
 ggsave(p_tweets_day_party_md_no_trump,
        file = "img/p_tweets_day_party_md_no_trump.pdf")
+ggsave(p_tweets_day_party_md_no_trump,
+       file = "img/p_tweets_day_party_md_no_trump.png")
 
 ```
 

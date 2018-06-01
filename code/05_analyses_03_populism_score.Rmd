@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       fig.align = "center",
                       cache = TRUE)
+
+save_to_disk <- FALSE
 ```
 
 
@@ -315,7 +317,7 @@ polits_df %>%
 
 p_party_pop_scores
 
-ggsave(p_party_pop_scores, file = "img/party_pop_scores.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores, file = "img/party_pop_scores.pdf")
 
 ```
 
@@ -337,7 +339,7 @@ polits_df %>%
 
 p_party_pop_scores_boxplot
 
-ggsave(p_party_pop_scores_boxplot, file = "img/p_party_pop_scores_boxplot.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_boxplot, file = "img/p_party_pop_scores_boxplot.pdf")
 
 ```
 
@@ -359,7 +361,7 @@ polits_df %>%
 
 p_pop_geom_boxplot_wo_trump
 
-ggsave(p_pop_geom_boxplot_wo_trump, file = "img/p_pop_geom_boxplot_wo_trump.pdf")
+if (save_to_disk == TRUE) ggsave(p_pop_geom_boxplot_wo_trump, file = "img/p_pop_geom_boxplot_wo_trump.pdf")
 
 ```
 
@@ -396,8 +398,8 @@ polits_df %>%
 
 p_party_pop_scores_individual
 
-ggsave(p_party_pop_scores_individual, file = "img/p_party_pop_scores_individual.pdf")
-ggsave(p_party_pop_scores_individual, file = "img/p_party_pop_scores_individual.png")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_individual, file = "img/p_party_pop_scores_individual.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_individual, file = "img/p_party_pop_scores_individual.png")
 
 ```
 
@@ -470,7 +472,7 @@ party_pop_scores %>%
 
 p_party_pop_scores_2
 
-ggsave(p_party_pop_scores_2, file = "img/p_party_pop_scores_2.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_2, file = "img/p_party_pop_scores_2.pdf")
 ```
 
 For comparision, same data, different computation
@@ -495,7 +497,7 @@ party_pop_scores %>%
 
 p_party_pop_scores_wo_trump
 
-ggsave(p_party_pop_scores_wo_trump, file = "img/p_party_pop_scores_wo_trump.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_wo_trump, file = "img/p_party_pop_scores_wo_trump.pdf")
 ```
 
 
@@ -510,7 +512,7 @@ pop_vars_de_median <- c(
                  emo_score_neg_z_median =  "Wert an negativer Emotion",
                  emo_abs_score_z_median = "Wert an Emotionalität",
                  cap_prop_z_median = "Anteil GROSSBUCHSTABEN",
-                 adj_adv_quote_z_median =  "Verhältnis Adjektiven zu Adverben")
+                 adj_adv_quote_z_median =  "Verhältnis Adjektive zu Adverbien")
 
 pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
                  neg_words_ratio_z = "Verhältnis negativer/positiver Wörter",
@@ -519,9 +521,24 @@ pop_vars_de <- c(word_length_md_comp_z = "Wortkürze",
                  emo_score_neg_z =  "Wert an negativer Emotion",
                  emo_abs_score_z = "Wert an Emotionalität",
                  cap_prop_z = "Anteil GROSSBUCHSTABEN",
-                 adj_adv_quote_z =  "Verhältnis Adjektiven zu Adverben")
+                 adj_adv_quote_z =  "Verhältnis Adjektive zu Adverbien")
 
 
+```
+
+
+## Party names in full
+
+```{r}
+party_names <- c(
+  afd = "AfD",
+  cdu = "CDU",
+  csu = "CSU",
+  fdp = "FDP",
+  gruene = "B90/Grüne",
+  linke = "Die Linke",
+  spd = "SPD"
+)
 ```
 
 
@@ -545,7 +562,7 @@ party_pop_scores %>%
 
 p_party_pop_scores_details
 
-ggsave(p_party_pop_scores_details, 
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_details, 
        file = "img/p_party_pop_scores_details.pdf", 
        width = 7,
        height = 5)
@@ -577,14 +594,14 @@ polits_df %>%
 
 p_party_pop_scores_details_boxplot
 
-ggsave(p_party_pop_scores_details_boxplot, file = "img/p_party_pop_scores_details_boxplot.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_details_boxplot, file = "img/p_party_pop_scores_details_boxplot.pdf")
 
 
 p_party_pop_scores_details_boxplot +
   scale_y_continuous(limits = c(-2,2)) -> 
   p_party_pop_scores_details_boxplot_limited
 
-ggsave(p_party_pop_scores_details_boxplot_limited, file = "img/p_party_pop_scores_details_boxplot_limited.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_details_boxplot_limited, file = "img/p_party_pop_scores_details_boxplot_limited.pdf")
 
 ```
 
@@ -617,7 +634,7 @@ polits_df %>%
 
 p_party_pop_scores_details_boxplot_no_trump
 
-ggsave(p_party_pop_scores_details_boxplot_no_trump, file = "img/p_party_pop_scores_details_boxplot_no_trump.pdf")
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_details_boxplot_no_trump, file = "img/p_party_pop_scores_details_boxplot_no_trump.pdf")
 
 ```
 
@@ -646,17 +663,22 @@ polits_df_long %>%
   ggplot +
   aes(x = Indikator, y = z_Wert,) +
   geom_point(color = "grey80", position = "jitter") +
-  facet_wrap(~party, nrow = 1) +
+  facet_wrap(~party, nrow = 1, labeller = labeller(party = party_names)) +
   scale_color_manual(values = party_pal) + 
-  #scale_x_discrete(labels = pop_vars_de) +
+  scale_x_discrete(labels = pop_vars_de) +
   scale_y_continuous(limits = c(-1.5,1.5), breaks = c(-1,0,1)) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "none") +
   coord_flip() +
+  labs(caption = 
+       "dargestellt sind Mediane über alle Tweets aller Politiker",
+       y = "z-Wert",
+       color = "Partei") +
   geom_point(data = party_pop_scores_md_long2, aes(color = party), size = 4) +
   geom_line(data = party_pop_scores_md_long2, aes(color = party), group = 1) -> p_party_pop_scores_details_no_trump_point_limited_grey
 
+p_party_pop_scores_details_no_trump_point_limited_grey
 
-ggsave("p_party_pop_scores_details_no_trump_point_limited_grey.pdf",
+if (save_to_disk == TRUE) ggsave("img/p_party_pop_scores_details_no_trump_point_limited_grey.pdf",
        width = 8,
        height =5)
 ```
@@ -686,13 +708,13 @@ p_party_pop_scores_details_no_trump +
   scale_y_continuous(limits = c(-2,2)) ->
   p_party_pop_scores_details_no_trump_limited
 
-ggsave(p_party_pop_scores_details_no_trump, 
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_details_no_trump, 
        file = "img/p_party_pop_scores_details_no_trump.pdf", 
        width = 7,
        height = 5)
 
 
-ggsave(p_party_pop_scores_details_no_trump_limited, 
+if (save_to_disk == TRUE) ggsave(p_party_pop_scores_details_no_trump_limited, 
        file = "img/p_party_pop_scores_details_no_trump_limited.pdf", 
        width = 7,
        height = 5)
@@ -720,7 +742,7 @@ party_pop_scores_md_long
 
 p_party_pop_scores_details_no_trump_point
 
-ggsave(file = "img/p_party_pop_scores_details_no_trump_point.pdf",
+if (save_to_disk == TRUE) ggsave(file = "img/p_party_pop_scores_details_no_trump_point.pdf",
        width = 7,
        height = 4)
 
@@ -748,7 +770,7 @@ polits_df %>%
 p_pop_screenName
 
 
-ggsave(p_pop_screenName,
+if (save_to_disk == TRUE) ggsave(p_pop_screenName,
        file = "img/p_pop_screenName.pdf")
 
 ```
@@ -771,7 +793,7 @@ polits_df %>%
 
 p_most_pop_screenName
 
-ggsave(p_most_pop_screenName,
+if (save_to_disk == TRUE) ggsave(p_most_pop_screenName,
        file = "img/p_most_pop_screenName.pdf")
 ```
 

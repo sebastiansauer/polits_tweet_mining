@@ -11,12 +11,14 @@ In this repository, you will find code and output. Note that *NO* data is made a
 Analyses are conducted using R.
 
 ## Install and run:
-### Mac
+
 1. Install R: https://stackoverflow.com/questions/20457290/installing-r-with-homebrew
 2. Download RStudio: https://www.rstudio.com/
 3. `git clone https://github.com/sebastiansauer/polits_tweet_mining.git`
 4. Open polit_tweets_mining.Rproj
 5. Install Packages: Within RStudio, go to Tools>Install Packages…, type in the packages needed from the files to be found within /code (e.g. tidyverse)
+6. The order of the analyses is noted chronologically in the file names (ie., start with file preceded by `01_`.
+
 
 ## Collecting profiles/twitter accounts
 Twitter accounts were collected based on these lists:
@@ -33,7 +35,14 @@ In sum, ~320k tweets were collected.
 Oldest tweet: March 2013
 Most recent tweet: Aug 2017
 
+Please note that the tweets are stored in *dehydrated* form due to the legal requirements of Twitter. Tweets can be re-hydrated using the Twitter API (or via the respective R package).
+
 
 ## Analyses
 
-Metadata of tweets and text of tweets were processed (after initial makeup/preparation). Stopwords and sentimens analyses (in prep) are included.
+Metadata of tweets and text of tweets were processed (after initial makeup/preparation). Stopwords and sentiment analyses (in prep) are included.
+
+
+## Some result presentation
+
+Check out [this slides](https://data-se.netlify.com/slides/populist-twitter/populist-twitter-dgps2018.html#1) for some result presentation.

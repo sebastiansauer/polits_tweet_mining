@@ -10,6 +10,13 @@ In this repository, you will find code and output. Note that *NO* data is made a
 
 Analyses are conducted using R.
 
+## Install and run:
+### Mac
+1. Install R: https://stackoverflow.com/questions/20457290/installing-r-with-homebrew
+2. Download RStudio: https://www.rstudio.com/
+3. `git clone https://github.com/sebastiansauer/polits_tweet_mining.git`
+4. Open polit_tweets_mining.Rproj
+5. Install Packages: Within RStudio, go to Tools>Install Packages…, type in the packages needed from the files to be found within /code (e.g. tidyverse)
 
 ## Collecting profiles/twitter accounts
 Twitter accounts were collected based on these lists:
